@@ -33,3 +33,12 @@ sudo pip3 install docker-compose
 docker pull redis:5-alpine
 docker pull python:3.7-alpine
 ```
+
+
+Random stuff
+```
+apk add --update alpine-sdk glib glib-dev linux-headers
+pip install git+https://github.com/WildflowerSchools/graphql-python-client-generator.git
+pip install git+https://github.com/WildflowerSchools/wildflower-honeycomb-sdk-py.git
+pip install decawave-ble tenacity celery
+```

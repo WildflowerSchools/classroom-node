@@ -7,13 +7,14 @@ TODO:
 - push the data to celery for honeycomb upload
 
 """
+from datetime import datetime
 import logging
 import threading
 import time
 
 import decawave_ble
 
-from camnode.workers import app
+# from camnode.workers import app
 
 
 def device_thread(device, collector, sleep_time=0.1):
@@ -32,31 +33,74 @@ def device_thread(device, collector, sleep_time=0.1):
         peripheral.disconnect()
 
 
+ISO_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
+
+
+def in_date_range(date=None, start=None, end=None):
+    if date is None:
+        return False
+    cmp = datetime.strptime(date, ISO_FORMAT)
+    if start is not None:
+        st_cmp = datetime.strptime(start, ISO_FORMAT)
+        if cmp < st_cmp:
+            return False
+    if end is not None:
+        end_cmp = datetime.strptime(end, ISO_FORMAT)
+        if cmp > end_cmp:
+            return False
+    return True
+
+
+
 class DecawaveCollector:
 
     def __init__(self, environment_id, honeycomb_client):
+        self.environment_id = environment_id
         self.honeycomb_client = honeycomb_client
         self.device_map = dict()
+        self.assignment_map = dict()
 
     def start(self):
         logging.debug("starting decawave data collection")
         devices = self.resolve_devices()
-        self.poll_devices(devices)
+        # self.poll_devices(devices)
 
     def resolve_devices(self):
-        decawave_devices = self.do_scan()
         target_device_names = self.get_env_device_list()
-        return {name: decawave_devices.get(name) for name in target_device_names}
+        if len(target_device_names):
+            decawave_devices = self.do_scan()
+            return {name: decawave_devices.get(name) for name in target_device_names}
+        return dict()
 
     def get_env_device_list(self):
-        self.honeycomb_client
-        return [
-            "DW4B94",
-            "DWD538",
-            "DW0D9F",
-            "DW088C",
-            "DW0000",
-        ]
+        environment = self.honeycomb_client.query.query("""query getEnvironment ($environment_id: ID!) {
+              getEnvironment(environment_id: $environment_id) {
+                assignments {
+                  start
+                  end
+                  assigned {
+                    ... on Device {
+                      device_id
+                      part_number
+                    }
+                  }
+                }
+              }
+            }
+            """, {"environment_id": self.environment_id}).get("getEnvironment")
+        print(environment)
+        assignments = environment.get("assignments")
+        now = datetime.utcnow().strftime(ISO_FORMAT)
+        valid_assignments = [ass for ass in assignments if in_date_range(now, ass.get("start"), ass.get("end"))]
+        logging.debug("loaded environment %s and found %s devices assinged, %s are current", self.environment_id, len(assignments), len(valid_assignments))
+        valid = set([va.get("assigned", {}).get("part_number") for va in valid_assignments])
+        for assignment in valid_assignments:
+            self.assignment_map[assignment.get("assigned", {}).get("part_number")] = assignment
+        to_kill = set(self.assignment_map.keys()) - valid
+        if len(to_kill):
+            # TODO - kill devices that should be killed
+            logging.debug("TOO MANY DEVICES: %s", to_kill)
+        return list(valid)
 
     def do_scan(self):
         """Scans for decawave devices in range"""
@@ -73,12 +117,3 @@ class DecawaveCollector:
     def queue_data_point(self, data):
         """Puts data on the queue"""
         app.send_task("honeycomb-send-data", args=[assignment_id, parent_data_point_id, data])
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
-    honeycomb_client = HoneycombClient("http://localhost:4000/graphql", "")
-    enviros = honeycomb_client.query.findEnvironment(name="Developer Lounge")
-    environment_id = enviros.data[0].environment_id
-    logging.debug("environment %s found", environment_id)
-    # collector = DecawaveCollector()
-    # collector.start()
