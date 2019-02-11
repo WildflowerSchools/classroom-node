@@ -1,0 +1,4 @@
+requests==2.21.0
+Flask==1.0.2
+pyyaml==3.13
+celery[redis]==4.2.1

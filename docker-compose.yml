@@ -1,0 +1,38 @@
+version: '3.6'
+services:
+
+  redis:
+    image: redis:5-alpine
+    restart: always
+
+  celery:
+    build:
+      context: ./
+      dockerfile: docker/local/workers/Dockerfile
+    depends_on:
+      - redis
+    environment:
+      ENV: local
+    volumes:
+      - type: bind
+        source: ./workers
+        target: /app
+
+  proxy:
+    build:
+      context: ./
+      dockerfile: docker/local/proxy/Dockerfile
+    ports:
+      - 5000:5000
+    depends_on:
+      - redis
+    command: sh /scripts/run-proxy.sh
+    environment:
+      ENV: local
+    volumes:
+      - type: bind
+        source: ./camnode
+        target: /app/camnode
+      - type: bind
+        source: ./scripts
+        target: /scripts
