@@ -1,8 +1,10 @@
-FROM python:3.7-alpine
+FROM python:3.6-alpine
 
 RUN apk add --update alpine-sdk glib glib-dev linux-headers
 
 RUN mkdir /app
+
+RUN pip install --upgrade pip
 
 COPY ./collector/requirements.txt requirements.txt
 

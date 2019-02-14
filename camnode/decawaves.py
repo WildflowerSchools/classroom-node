@@ -8,16 +8,17 @@ TODO:
 
 """
 from datetime import datetime
+import json
 import logging
 import threading
 import time
 
 import decawave_ble
 
-# from camnode.workers import app
+from camnode.workers.honeycomb import send_data
 
 
-def device_thread(device, collector, sleep_time=0.1):
+def device_thread(assignment_id, device, collector, sleep_time=0.1):
     if device is None:
         logging.debug("device %s not available", threading.current_thread().name)
         return
@@ -26,14 +27,18 @@ def device_thread(device, collector, sleep_time=0.1):
         while True:
             data = decawave_ble.get_location_data_from_peripheral(peripheral)
             logging.debug(data)
-            collector.queue_data_point(data)
+            collector.queue_data_point(assignment_id, data)
             time.sleep(sleep_time)
+            # return  # temp, trying to figure out why it errors
     finally:
         logging.debug("device %s disconnected", device.device_name)
         peripheral.disconnect()
 
 
 ISO_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
+
+def now():
+    return datetime.utcnow().strftime(ISO_FORMAT)
 
 
 def in_date_range(date=None, start=None, end=None):
@@ -63,7 +68,8 @@ class DecawaveCollector:
     def start(self):
         logging.debug("starting decawave data collection")
         devices = self.resolve_devices()
-        # self.poll_devices(devices)
+        logging.debug("devices discovered, %s are missing", len([k for k, v in devices.items() if v is None]))
+        self.poll_devices(devices)
 
     def resolve_devices(self):
         target_device_names = self.get_env_device_list()
@@ -76,6 +82,7 @@ class DecawaveCollector:
         environment = self.honeycomb_client.query.query("""query getEnvironment ($environment_id: ID!) {
               getEnvironment(environment_id: $environment_id) {
                 assignments {
+                  assignment_id
                   start
                   end
                   assigned {
@@ -88,10 +95,9 @@ class DecawaveCollector:
               }
             }
             """, {"environment_id": self.environment_id}).get("getEnvironment")
-        print(environment)
         assignments = environment.get("assignments")
-        now = datetime.utcnow().strftime(ISO_FORMAT)
-        valid_assignments = [ass for ass in assignments if in_date_range(now, ass.get("start"), ass.get("end"))]
+        ts = now()
+        valid_assignments = [ass for ass in assignments if in_date_range(ts, ass.get("start"), ass.get("end"))]
         logging.debug("loaded environment %s and found %s devices assinged, %s are current", self.environment_id, len(assignments), len(valid_assignments))
         valid = set([va.get("assigned", {}).get("part_number") for va in valid_assignments])
         for assignment in valid_assignments:
@@ -110,10 +116,10 @@ class DecawaveCollector:
         """Loops over the devices and requests location data for each.
 
         For each device that data is found for the data is queued to be sent to honeycomb."""
-        threads = [threading.Thread(target=device_thread, name=name, args=[device, self, 0.01]) for name, device in devices.items()]
+        threads = [threading.Thread(target=device_thread, name=name, args=[self.assignment_map[name].get("assignment_id"), device, self, 1]) for name, device in devices.items()]
         for thread in threads:
             thread.start()
 
-    def queue_data_point(self, data):
+    def queue_data_point(self, assignment_id, data):
         """Puts data on the queue"""
-        app.send_task("honeycomb-send-data", args=[assignment_id, parent_data_point_id, data])
+        send_data.apply_async(args=[assignment_id, now(), "application/json", json.dumps(data), "radio-observation.json"])
