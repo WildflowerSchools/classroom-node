@@ -24,43 +24,24 @@ services:
         source: ./
         target: /app
 
-  # proxy:
-  #   build:
-  #     context: ./
-  #     dockerfile: docker/local/proxy/Dockerfile
-  #   ports:
-  #     - 5000:5000
-  #   depends_on:
-  #     - redis
-  #   command: sh /scripts/run-proxy.sh
-  #   environment:
-  #     ENV: local
-  #   volumes:
-  #     - type: bind
-  #       source: ./camnode
-  #       target: /app/camnode
-  #     - type: bind
-  #       source: ./scripts
-  #       target: /scripts
-
-  # collector:
-  #   build:
-  #     context: ./
-  #     dockerfile: docker/local/collector/Dockerfile
-  #   depends_on:
-  #     - celery
-  #   command: python decawaves.py
-  #   privileged: true
-  #   network_mode: host
-  #   environment:
-  #     ENV: local
-  #     QUEUE_REDIS_HOST: localhost
-  #     QUEUE_BROKER_REDIS_DB: 0
-  #     QUEUE_RESULTS_REDIS_DB: 1
-  #   volumes:
-  #     - type: bind
-  #       source: ./
-  #       target: /app
+  collector:
+    build:
+      context: ./
+      dockerfile: docker/local/collector/Dockerfile
+    depends_on:
+      - celery
+    command: python decawaves.py
+    privileged: true
+    network_mode: host
+    environment:
+      ENV: local
+      QUEUE_REDIS_HOST: localhost
+      QUEUE_BROKER_REDIS_DB: 0
+      QUEUE_RESULTS_REDIS_DB: 1
+    volumes:
+      - type: bind
+        source: ./
+        target: /app
 
   capture:
     build:

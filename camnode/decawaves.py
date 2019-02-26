@@ -25,11 +25,13 @@ def device_thread(assignment_id, device, collector, sleep_time=0.1):
     peripheral = decawave_ble.get_decawave_peripheral(device)
     try:
         while True:
-            data = decawave_ble.get_location_data_from_peripheral(peripheral)
-            logging.debug(data)
-            collector.queue_data_point(assignment_id, data)
-            time.sleep(sleep_time)
-            # return  # temp, trying to figure out why it errors
+            try:
+                data = decawave_ble.get_location_data_from_peripheral(peripheral)
+                logging.debug(data)
+                collector.queue_data_point(assignment_id, data)
+                time.sleep(sleep_time)
+            except Exception as e:
+                peripheral.connect(peripheral.addr)
     finally:
         logging.debug("device %s disconnected", device.device_name)
         peripheral.disconnect()

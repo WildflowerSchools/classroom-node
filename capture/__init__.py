@@ -47,7 +47,7 @@ def upload_loop(control, queue):
             if name:
                 send_data.apply_async(args=[assignment_id, now(), "application/json", prepare_file(name), "radio-observation.json"])
         else:
-            time.sleep(1)
+            time.sleep(3)
         if not control.empty():
             message = control.get()
             print("got a message in the convert loop: {}".format(message))
@@ -76,9 +76,9 @@ def main():
     ffmpeg_process = Process(target=upload_loop, args=(control_2, queue, ))
     ffmpeg_process.start()
 
-    time.sleep(300)
-    control_1.put("STOP")
-    time.sleep(1)
-    control_2.put("STOP")
+    # time.sleep(300)
+    # control_1.put("STOP")
+    # time.sleep(1)
+    # control_2.put("STOP")
     capture_process.join()
     ffmpeg_process.join()

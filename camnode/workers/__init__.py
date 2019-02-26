@@ -25,5 +25,5 @@ app.conf.result_backend = f"redis://{redis_info()}/{os.environ.get('QUEUE_RESULT
 app.conf.broker_url = f"redis://{redis_info()}/{os.environ.get('QUEUE_BROKER_REDIS_DB', '1')}"
 app.conf.redis_max_connections = 4
 app.conf.redis_socket_timeout = 10
-app.conf.result_expires = 60 * 60 * 4  # 4 hours
+app.conf.result_expires = 60
 app.autodiscover_tasks(["camnode.workers.honeycomb"])
