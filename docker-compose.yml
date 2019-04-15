@@ -44,23 +44,23 @@ services:
         target: /app
 
   capture:
-    build:
-      context: ./
-      dockerfile: docker/local/capture/Dockerfile
-    depends_on:
-      - celery
-    command: python run_capture.py
-    privileged: true
-    network_mode: host
-    environment:
-      ENV: local
-      QUEUE_REDIS_HOST: localhost
-      QUEUE_BROKER_REDIS_DB: 0
-      QUEUE_RESULTS_REDIS_DB: 1
-    volumes:
-      - type: bind
-        source: ./
-        target: /app
-      - type: bind
-        source: ./outputs
-        target: /out
+     build:
+       context: ./
+       dockerfile: docker/local/capture/Dockerfile
+     depends_on:
+       - celery
+     command: python run_capture.py
+     privileged: true
+     network_mode: host
+     environment:
+       ENV: local
+       QUEUE_REDIS_HOST: localhost
+       QUEUE_BROKER_REDIS_DB: 0
+       QUEUE_RESULTS_REDIS_DB: 1
+     volumes:
+       - type: bind
+         source: ./
+         target: /app
+       - type: bind
+         source: ./outputs
+         target: /out

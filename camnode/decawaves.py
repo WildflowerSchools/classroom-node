@@ -31,7 +31,14 @@ def device_thread(assignment_id, device, collector, sleep_time=0.1):
                 collector.queue_data_point(assignment_id, data)
                 time.sleep(sleep_time)
             except Exception as e:
+                time.sleep(sleep_time)
+                try:
+                    peripheral.disconnect()
+                except:
+                    pass  # makes sense, if we got here it's probably because we already had a disconnect
+                peripheral = decawave_ble.get_decawave_peripheral(device)
                 peripheral.connect(peripheral.addr)
+
     finally:
         logging.debug("device %s disconnected", device.device_name)
         peripheral.disconnect()
