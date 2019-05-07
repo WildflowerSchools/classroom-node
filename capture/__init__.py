@@ -1,84 +1,103 @@
-from datetime import datetime
+
 from multiprocessing import Process, Queue
 import os
 import time
-import gzip
-import io
-import base64
 
+from minio import Minio
+from minio.error import (ResponseError, BucketAlreadyOwnedByYou,
+                         BucketAlreadyExists)
 import picamera
 
 from camnode.utils import now
-from camnode.workers.honeycomb import send_data
 
 
-assignment_id = "ae05f654-593a-481f-941b-ce32297b5756"
+ASSIGNMENT_ID = os.environ.get("WF_ASSIGNMENT_ID")
+BUCKET = os.environ.get("MINIO_BUCKET_NAME")
+
+CAMERA_RES = (os.environ.get("CAMERA_RES_W", 1296), os.environ.get("CAMERA_RES_H", 730))
+CAMERA_FRAMERATE = os.environ.get("CAMERA_FRAMERATE", 15)
+INTRA_PERIOD = os.environ.get("INTRA_PERIOD", 100)
+BITRATE = os.environ.get("BITRATE", 1000000)
+PERIOD = os.environ.get("DURATION", 10)
 
 
 def capture_loop(control, queue):
     with picamera.PiCamera() as camera:
-        camera.resolution = (1296, 730)
-        camera.framerate = 15
+        camera.resolution = CAMERA_RES
+        camera.framerate = CAMERA_FRAMERATE
+
+        name = '/out/video-{}.h264'.format(now())
+        # camera.start_preview()
+        camera.start_recording(name, format='h264', intra_period=INTRA_PERIOD, bitrate=BITRATE)
+        camera.wait_recording(PERIOD)
+        queue.put_nowait(name)
         while True:
             name = '/out/video-{}.h264'.format(now())
-            # camera.start_preview()
-            camera.start_recording(name, format='h264')
-            camera.wait_recording(10)
-            camera.stop_recording()
+            camera.split_recording(name, format='h264', intra_period=INTRA_PERIOD, bitrate=BITRATE)
+            camera.wait_recording(PERIOD)
             queue.put_nowait(name)
             if not control.empty():
                 message = control.get()
                 print("got a message in the capture loop: {}".format(message))
                 if message == "STOP":
+                    camera.stop_recording()
                     break
 
 
-def upload_loop(control, queue):
+def upload_loop(control, queue, minioClient):
     while True:
         print("=" * 80)
-        print(" conversion loop")
+        print(" upload loop")
         try:
             print("    {} items in the queue".format(queue.qsize()))
-        except:
+        except Exception:
             print(" no idea how many are queued")
         print("=" * 80)
         if not queue.empty():
             name = queue.get()
             if name:
-                send_data.apply_async(args=[assignment_id, now(), "application/json", prepare_file(name), "radio-observation.json"])
+                try:
+                    ts = name[11:-5]
+                    minioClient.fput_object(BUCKET, '/%s/%s.h264' % (ASSIGNMENT_ID, ts.replace('-', '/').replace('T', '/')), name, content_type='video/h264', metadata={
+                                            "source": ASSIGNMENT_ID,
+                                            "ts": ts,
+                                            "duration": "%ss" % PERIOD,
+                                            })
+                    os.remove(name)
+                except ResponseError as err:
+                    print(err)
         else:
-            time.sleep(3)
+            time.sleep(2)
         if not control.empty():
             message = control.get()
-            print("got a message in the convert loop: {}".format(message))
+            print("got a message in the upload loop: {}".format(message))
             if message == "STOP":
                 print("asked to stop")
                 print("still {} items in the queue".format(queue.qsize()))
                 return
 
-
-def prepare_file(name):
-    with open(name, 'rb') as src:
-        zipped = io.BytesIO()
-        zipper = gzip.GzipFile("video.gz", 'wb', fileobj=zipped)
-        zipper.write(src.read())
-        zipped.seek(0)
-        return base64.b64encode(zipped.read()).decode()
-
-
 def main():
+    minioClient = Minio(os.environ.get("MINIO_URL"),
+                        access_key=os.environ.get("MINIO_KEY"),
+                        secret_key=os.environ.get("MINIO_SECRET"),
+                        secure=True)
+
+    try:
+        minioClient.make_bucket(BUCKET, location="us-east-1")
+    except BucketAlreadyOwnedByYou as err:
+        pass
+    except BucketAlreadyExists as err:
+        pass
+    except ResponseError as err:
+        raise
     control_1 = Queue()
     control_2 = Queue()
     queue = Queue()
     capture_process = Process(target=capture_loop, args=(control_1, queue, ))
     capture_process.start()
 
-    ffmpeg_process = Process(target=upload_loop, args=(control_2, queue, ))
+    ffmpeg_process = Process(target=upload_loop, args=(control_2, queue, minioClient, ))
     ffmpeg_process.start()
 
-    # time.sleep(300)
-    # control_1.put("STOP")
-    # time.sleep(1)
-    # control_2.put("STOP")
     capture_process.join()
     ffmpeg_process.join()

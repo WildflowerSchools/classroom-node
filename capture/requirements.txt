@@ -1,3 +1,5 @@
 picamera==1.13
 ffmpeg-python==0.1.17
 celery[redis]==4.2.1
+minio==4.0.15
+pyyaml==3.11
