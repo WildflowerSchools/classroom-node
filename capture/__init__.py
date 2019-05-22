@@ -1,24 +1,31 @@
-
+import datetime
 from multiprocessing import Process, Queue
 import os
 import time
 
+import yaml
 from minio import Minio
-from minio.error import (ResponseError, BucketAlreadyOwnedByYou,
-                         BucketAlreadyExists)
+from minio.error import (ResponseError, BucketAlreadyOwnedByYou, BucketAlreadyExists)
 import picamera
+import ffmpeg
 
-from camnode.utils import now
+
+with open('/boot/wildflower-config.yml', 'r') as fp:
+    config = yaml.safe_load(fp.read())
 
 
-ASSIGNMENT_ID = os.environ.get("WF_ASSIGNMENT_ID")
-BUCKET = os.environ.get("MINIO_BUCKET_NAME")
+ASSIGNMENT_ID = config.get("assignment-id", "unassigned")
+BUCKET = os.environ.get("MINIO_BUCKET_NAME", "videos")
 
-CAMERA_RES = (os.environ.get("CAMERA_RES_W", 1296), os.environ.get("CAMERA_RES_H", 730))
-CAMERA_FRAMERATE = os.environ.get("CAMERA_FRAMERATE", 15)
-INTRA_PERIOD = os.environ.get("INTRA_PERIOD", 100)
+CAMERA_RES = (os.environ.get("CAMERA_RES_W", 1296), os.environ.get("CAMERA_RES_H", 972))
+CAMERA_FRAMERATE = os.environ.get("CAMERA_FRAMERATE", 10)
+INTRA_PERIOD = os.environ.get("INTRA_PERIOD", 20)
 BITRATE = os.environ.get("BITRATE", 1000000)
 PERIOD = os.environ.get("DURATION", 10)
+
+
+def next_timeslot(now):
+    return now + (PERIOD - (now % PERIOD))
 
 
 def capture_loop(control, queue):
@@ -26,16 +33,29 @@ def capture_loop(control, queue):
         camera.resolution = CAMERA_RES
         camera.framerate = CAMERA_FRAMERATE
 
-        name = '/out/video-{}.h264'.format(now())
+        now = time.time()
+        timeslot = next_timeslot(now)
+        sleep_time = timeslot - now
+
+        if sleep_time < 2:  # Ensure camera has enough time to adjust
+            sleep_time += PERIOD
+            timeslot += PERIOD
+
+        time.sleep(sleep_time)
+
         # camera.start_preview()
+        video_start_time = datetime.datetime.fromtimestamp(timeslot)
+        name = '/out/video-{:%Y_%m_%d_%H_%M-%S}.h264'.format(video_start_time)
         camera.start_recording(name, format='h264', intra_period=INTRA_PERIOD, bitrate=BITRATE)
-        camera.wait_recording(PERIOD)
-        queue.put_nowait(name)
+        camera.wait_recording(PERIOD - 0.1)
         while True:
-            name = '/out/video-{}.h264'.format(now())
             camera.split_recording(name, format='h264', intra_period=INTRA_PERIOD, bitrate=BITRATE)
-            camera.wait_recording(PERIOD)
             queue.put_nowait(name)
+            timeslot += PERIOD
+            video_start_time = datetime.datetime.fromtimestamp(timeslot)
+            name = '/out/video-{:%Y_%m_%d_%H_%M-%S}.h264'.format(video_start_time)
+            delay = timeslot + PERIOD - time.time()
+            camera.wait_recording(delay - 0.1)
             if not control.empty():
                 message = control.get()
                 print("got a message in the capture loop: {}".format(message))
@@ -57,8 +77,20 @@ def upload_loop(control, queue, minioClient):
             name = queue.get()
             if name:
                 try:
+                    start = datetime.datetime.now()
+                    mp4_name = "%s.mp4" % name[:-5]
+                    (
+                        ffmpeg
+                        .input(name, format="h264")
+                        .output(mp4_name, format="mp4", c="copy", r="10")
+                        .run(quiet=True)
+                    )
+                    print('repackage took %s' % (datetime.datetime.now() - start).total_seconds())
+                    time.sleep(1)
                     ts = name[11:-5]
-                    minioClient.fput_object(BUCKET, '/%s/%s.h264' % (ASSIGNMENT_ID, ts.replace('-', '/').replace('T', '/')), name, content_type='video/h264', metadata={
+                    obj_name = ('%s/%s.mp4' % (ASSIGNMENT_ID, ts)).replace("_", "/")
+                    print("putting %s on minio" % obj_name)
+                    minioClient.fput_object(BUCKET, obj_name, mp4_name, content_type='video/mp4', metadata={
                                             "source": ASSIGNMENT_ID,
                                             "ts": ts,
                                             "duration": "%ss" % PERIOD,
@@ -66,6 +98,7 @@ def upload_loop(control, queue, minioClient):
                     os.remove(name)
                 except ResponseError as err:
                     print(err)
+                    print("failed to process %s" % name)
         else:
             time.sleep(2)
         if not control.empty():
@@ -76,11 +109,12 @@ def upload_loop(control, queue, minioClient):
                 print("still {} items in the queue".format(queue.qsize()))
                 return
 
+
 def main():
-    minioClient = Minio(os.environ.get("MINIO_URL"),
-                        access_key=os.environ.get("MINIO_KEY"),
+    minioClient = Minio(os.environ.get("MINIO_URL", "inio-service.classroom.svc.cluster.local:9000"),
+                        access_key=os.environ.get("MINIO_KEY", "wildflower-classroom"),
                         secret_key=os.environ.get("MINIO_SECRET"),
-                        secure=True)
+                        secure=False)
 
     try:
         minioClient.make_bucket(BUCKET, location="us-east-1")
