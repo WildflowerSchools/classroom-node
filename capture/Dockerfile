@@ -1,4 +1,4 @@
-FROM balenalib/raspberrypi3-python:3.6
+FROM balenalib/raspberrypi3-python:3.7
 
 RUN mkdir /app
 RUN mkdir /out
