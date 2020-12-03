@@ -1,0 +1,37 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  namespace: classroom
+  name: streamer
+  labels:
+    name: streamer
+spec:
+  selector:
+    matchLabels:
+      name: streamer
+  template:
+    metadata:
+      namespace: classroom
+      labels:
+        name: streamer
+    spec:
+      nodeSelector:
+        wildflower-type: camera
+      containers:
+      - image: "wildflowerschools/classroom-node-capture:v27"
+        name: streamer
+        command: ["python", "-m", "capture.streamer"]
+        securityContext:
+          privileged: true
+        ports:
+        - containerPort: 8000
+        volumeMounts:
+        - name: boot
+          mountPath: /boot
+      volumes:
+        - name: boot
+          hostPath:
+            path: /boot
+            type: Directory        
+

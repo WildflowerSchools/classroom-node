@@ -1,0 +1,52 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  namespace: classroom
+  name: capture
+  labels:
+    name: capture
+spec:
+  selector:
+    matchLabels:
+      name: capture
+  template:
+    metadata:
+      namespace: classroom
+      labels:
+        name: capture
+    spec:
+      dnsPolicy: ClusterFirstWithHostNet
+      enableServiceLinks: true
+      hostNetwork: true
+      nodeSelector:
+        wildflower-type: camera
+      containers:
+      - image: "wildflowerschools/classroom-node-capture:v27"
+        name: capture
+        securityContext:
+          privileged: true
+        # command: ["python", "-c", "import time\nwhile True:\n    time.sleep(3)"]
+        env:
+          - name: MINIO_KEY
+            value: "wildflower-classroom"
+          - name: MINIO_SECRET
+            value: "892347428463011457756120837563764010019"
+          - name: MINIO_BUCKET_NAME
+            value: "videos"
+          - name: MINIO_URL
+            value: "minio.classroom:9000"
+        volumeMounts:
+        - name: boot
+          mountPath: /boot
+        - name: video-buffer
+          mountPath: /out
+      volumes:
+        - name: boot
+          hostPath:
+            path: /boot
+            type: Directory
+        - name: video-buffer
+          hostPath:
+            path: /data
+            type: Directory

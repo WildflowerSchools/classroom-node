@@ -19,7 +19,7 @@ BUCKET = os.environ.get("MINIO_BUCKET_NAME", "videos")
 
 CAMERA_RES = (os.environ.get("CAMERA_RES_W", 1296), os.environ.get("CAMERA_RES_H", 972))
 CAMERA_FRAMERATE = os.environ.get("CAMERA_FRAMERATE", 10)
-INTRA_PERIOD = os.environ.get("INTRA_PERIOD", 20)
+INTRA_PERIOD = os.environ.get("INTRA_PERIOD", 120)
 BITRATE = os.environ.get("BITRATE", 1000000)
 PERIOD = os.environ.get("DURATION", 10)
 
@@ -47,21 +47,17 @@ def capture_loop(control, queue):
         video_start_time = datetime.datetime.fromtimestamp(timeslot)
         name = '/out/video-{:%Y_%m_%d_%H_%M-%S}.h264'.format(video_start_time)
         camera.start_recording(name, format='h264', intra_period=INTRA_PERIOD, bitrate=BITRATE)
-        camera.wait_recording(PERIOD - 0.1)
+        camera.wait_recording(PERIOD - 0.001)
         while True:
-            camera.split_recording(name, format='h264', intra_period=INTRA_PERIOD, bitrate=BITRATE)
-            queue.put_nowait(name)
+            pname = name
             timeslot += PERIOD
             video_start_time = datetime.datetime.fromtimestamp(timeslot)
             name = '/out/video-{:%Y_%m_%d_%H_%M-%S}.h264'.format(video_start_time)
+            camera.split_recording(name, format='h264', intra_period=INTRA_PERIOD, bitrate=BITRATE)
+            queue.put_nowait(pname)
             delay = timeslot + PERIOD - time.time()
-            camera.wait_recording(delay - 0.1)
-            if not control.empty():
-                message = control.get()
-                print("got a message in the capture loop: {}".format(message))
-                if message == "STOP":
-                    camera.stop_recording()
-                    break
+            print("waiting %s" % delay)
+            camera.wait_recording(delay)
 
 
 def upload_loop(control, queue, minioClient):
@@ -81,9 +77,9 @@ def upload_loop(control, queue, minioClient):
                     mp4_name = "%s.mp4" % name[:-5]
                     (
                         ffmpeg
-                        .input(name, format="h264")
-                        .output(mp4_name, format="mp4", c="copy", r="10")
-                        .run(quiet=True)
+                        .input(name, format="h264", r=str(CAMERA_FRAMERATE))
+                        .output(mp4_name, **{"format": "mp4", "c:v": "copy", "r": str(CAMERA_FRAMERATE)})
+                        .run(quiet=False)
                     )
                     print('repackage took %s' % (datetime.datetime.now() - start).total_seconds())
                     time.sleep(1)
@@ -96,6 +92,7 @@ def upload_loop(control, queue, minioClient):
                                             "duration": "%ss" % PERIOD,
                                             })
                     os.remove(name)
+                    os.remove(mp4_name)
                 except ResponseError as err:
                     print(err)
                     print("failed to process %s" % name)

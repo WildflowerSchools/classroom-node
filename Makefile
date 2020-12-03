@@ -11,3 +11,6 @@ build-capture:
 
 run-capture:
 	docker run -it --privileged --net=host -v $$PWD:/app classroom-node-capture:wip python run_capture.py
+
+apply-dashboard:
+	kubectl --context k3s apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/recommended/kubernetes-dashboard-arm.yaml

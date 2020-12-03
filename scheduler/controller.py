@@ -7,7 +7,7 @@ from kubernetes.client.rest import ApiException
 
 logger = logging.getLogger('scheduler')
 
-SUPPORTED_APP_TYPES = ["daemon-set"]
+SUPPORTED_APP_TYPES = ["daemon-set", "deployment"]
 SUPPORT_CORE_TYPES = ["config-map"]
 
 
@@ -27,7 +27,13 @@ def status_check(kubetype, name, namespace="default"):
                 resource = apps.read_namespaced_daemon_set(name, namespace)
                 return resource.status
             except Exception as e:
-                logger.error("status failed")
+                logger.error("status failed", e)
+        if kubetype == "deployment":
+            try:
+                resource = apps.read_namespaced_deployment_status(name, namespace)
+                return resource.status
+            except Exception as e:
+                logger.error("status failed", e)
     return None
 
 
@@ -198,6 +204,13 @@ class DeleteOperation(object):
                     logger.info(f"deleting -n {namespace} {kubetype}/{name}")
                     try:
                         apps.delete_namespaced_daemon_set(name, namespace)
+                    except ApiException as e:
+                        if e.status != 404:
+                            logger.error(e)
+                elif kubetype == "deployment":
+                    logger.info(f"deleting -n {namespace} {kubetype}/{name}")
+                    try:
+                        apps.delete_namespaced_deployment(name, namespace)
                     except ApiException as e:
                         if e.status != 404:
                             logger.error(e)

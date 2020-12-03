@@ -209,7 +209,7 @@ class Brazil(object):
 
 def load_schedules(file_path="schedule.yaml"):
     with open(file_path, 'r') as fp:
-        shed = yaml.load(fp)
+        shed = yaml.safe_load(fp)
     bureaucrat = Brazil(shed.get("timezone", "US/Central"))
     for name, action in shed.get("actions").items():
         bureaucrat.actions[name] = parse_action(action)

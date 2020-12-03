@@ -1,2 +1,0 @@
-ffmpeg-python==0.1.17
-celery[redis]==4.2.1

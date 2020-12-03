@@ -1,3 +1,0 @@
-decawave-ble
-tenacity
-celery[redis]==4.2.1
