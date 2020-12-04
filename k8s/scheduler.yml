@@ -32,7 +32,7 @@ metadata:
 spec:
   schedule: "*/5 * * * *"
   concurrencyPolicy: Replace
-  successfulJobsHistoryLimit: 5
+  successfulJobsHistoryLimit: 2
   failedJobsHistoryLimit: 5
   jobTemplate:
     spec:
