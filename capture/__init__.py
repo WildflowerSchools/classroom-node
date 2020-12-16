@@ -80,7 +80,7 @@ def get_next_file():
     return None
 
 
-def upload_loop(minioClient):
+def upload_loop():
     minioClient = Minio(os.environ.get("MINIO_URL", "minio-service.classroom.svc.cluster.local:9000"),
                         access_key=os.environ.get("MINIO_KEY", "wildflower-classroom"),
                         secret_key=os.environ.get("MINIO_SECRET"),
