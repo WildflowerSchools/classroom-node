@@ -11,7 +11,6 @@ COPY ./capture/requirements.txt requirements.txt
 
 RUN pip install -r requirements.txt
 
-COPY ./camnode/ /app/camnode
 COPY ./capture/ /app/capture
 COPY ./run_capture.py /app/run_capture.py
 

@@ -22,6 +22,9 @@ CAMERA_FRAMERATE = os.environ.get("CAMERA_FRAMERATE", 10)
 INTRA_PERIOD = os.environ.get("INTRA_PERIOD", 120)
 BITRATE = os.environ.get("BITRATE", 1000000)
 PERIOD = os.environ.get("DURATION", 10)
+CAMERA_ISO_SETTING = os.environ.get("CAMERA_ISO_SETTING", 400)
+CAMERA_EXPOSURE_MODE = os.environ.get("CAMERA_EXPOSURE_MODE", 'sports')
+CAMERA_SHUTTER_SPEED = os.environ.get("CAMERA_SHUTTER_SPEED", 0)
 
 
 def next_timeslot(now):
@@ -32,6 +35,9 @@ def capture_loop(control, queue):
     with picamera.PiCamera() as camera:
         camera.resolution = CAMERA_RES
         camera.framerate = CAMERA_FRAMERATE
+        camewra.iso = CAMERA_ISO_SETTING
+        camera.exposure_mode = CAMERA_EXPOSURE_MODE
+        camera.shutter_speed = CAMERA_SHUTTER_SPEED
 
         now = time.time()
         timeslot = next_timeslot(now)
