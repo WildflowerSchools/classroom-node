@@ -22,99 +22,66 @@ CAMERA_FRAMERATE = os.environ.get("CAMERA_FRAMERATE", 10)
 INTRA_PERIOD = os.environ.get("INTRA_PERIOD", 120)
 BITRATE = os.environ.get("BITRATE", 1000000)
 PERIOD = os.environ.get("DURATION", 10)
-CAMERA_ISO_SETTING = os.environ.get("CAMERA_ISO_SETTING", 400)
+CAMERA_ISO_SETTING = int(os.environ.get("CAMERA_ISO_SETTING", 400))
 CAMERA_EXPOSURE_MODE = os.environ.get("CAMERA_EXPOSURE_MODE", 'sports')
-CAMERA_SHUTTER_SPEED = os.environ.get("CAMERA_SHUTTER_SPEED", 0)
+CAMERA_SHUTTER_SPEED = int(os.environ.get("CAMERA_SHUTTER_SPEED", 0))
 
 
 def next_timeslot(now):
     return now + (PERIOD - (now % PERIOD))
 
 
-def capture_loop(control, queue):
-    with picamera.PiCamera() as camera:
-        camera.resolution = CAMERA_RES
-        camera.framerate = CAMERA_FRAMERATE
-        camewra.iso = CAMERA_ISO_SETTING
-        camera.exposure_mode = CAMERA_EXPOSURE_MODE
-        camera.shutter_speed = CAMERA_SHUTTER_SPEED
+def capture_loop():
+    print("starting capture")
+    try:
+        with picamera.PiCamera() as camera:
+            camera.resolution = CAMERA_RES
+            camera.framerate = CAMERA_FRAMERATE
+            camera.iso = CAMERA_ISO_SETTING
+            camera.exposure_mode = CAMERA_EXPOSURE_MODE
+            camera.shutter_speed = CAMERA_SHUTTER_SPEED
 
-        now = time.time()
-        timeslot = next_timeslot(now)
-        sleep_time = timeslot - now
+            now = time.time()
+            timeslot = next_timeslot(now)
+            sleep_time = timeslot - now
 
-        if sleep_time < 2:  # Ensure camera has enough time to adjust
-            sleep_time += PERIOD
-            timeslot += PERIOD
+            if sleep_time < 2:  # Ensure camera has enough time to adjust
+                sleep_time += PERIOD
+                timeslot += PERIOD
+            print(f"going to sleep for a bit {sleep_time}")
+            time.sleep(sleep_time)
 
-        time.sleep(sleep_time)
-
-        # camera.start_preview()
-        video_start_time = datetime.datetime.fromtimestamp(timeslot)
-        name = '/out/video-{:%Y_%m_%d_%H_%M-%S}.h264'.format(video_start_time)
-        camera.start_recording(name, format='h264', intra_period=INTRA_PERIOD, bitrate=BITRATE)
-        camera.wait_recording(PERIOD - 0.001)
-        while True:
-            pname = name
-            timeslot += PERIOD
+            # camera.start_preview()
             video_start_time = datetime.datetime.fromtimestamp(timeslot)
             name = '/out/video-{:%Y_%m_%d_%H_%M-%S}.h264'.format(video_start_time)
-            camera.split_recording(name, format='h264', intra_period=INTRA_PERIOD, bitrate=BITRATE)
-            queue.put_nowait(pname)
-            delay = timeslot + PERIOD - time.time()
-            print("waiting %s" % delay)
-            camera.wait_recording(delay)
+            camera.start_recording(name, format='h264', intra_period=INTRA_PERIOD, bitrate=BITRATE)
+            camera.wait_recording(PERIOD - 0.001)
+            while True:
+                pname = name
+                timeslot += PERIOD
+                video_start_time = datetime.datetime.fromtimestamp(timeslot)
+                name = '/out/video-{:%Y_%m_%d_%H_%M-%S}.h264'.format(video_start_time)
+                camera.split_recording(name, format='h264', intra_period=INTRA_PERIOD, bitrate=BITRATE)
+                delay = timeslot + PERIOD - time.time()
+                print("waiting %s" % delay)
+                camera.wait_recording(delay)
+    except Exception as e:
+        print(e)
 
 
-def upload_loop(control, queue, minioClient):
-    while True:
-        print("=" * 80)
-        print(" upload loop")
-        try:
-            print("    {} items in the queue".format(queue.qsize()))
-        except Exception:
-            print(" no idea how many are queued")
-        print("=" * 80)
-        if not queue.empty():
-            name = queue.get()
-            if name:
-                try:
-                    start = datetime.datetime.now()
-                    mp4_name = "%s.mp4" % name[:-5]
-                    (
-                        ffmpeg
-                        .input(name, format="h264", r=str(CAMERA_FRAMERATE))
-                        .output(mp4_name, **{"format": "mp4", "c:v": "copy", "r": str(CAMERA_FRAMERATE)})
-                        .run(quiet=False)
-                    )
-                    print('repackage took %s' % (datetime.datetime.now() - start).total_seconds())
-                    time.sleep(1)
-                    ts = name[11:-5]
-                    obj_name = ('%s/%s.mp4' % (ASSIGNMENT_ID, ts)).replace("_", "/")
-                    print("putting %s on minio" % obj_name)
-                    minioClient.fput_object(BUCKET, obj_name, mp4_name, content_type='video/mp4', metadata={
-                                            "source": ASSIGNMENT_ID,
-                                            "ts": ts,
-                                            "duration": "%ss" % PERIOD,
-                                            })
-                    os.remove(name)
-                    os.remove(mp4_name)
-                except ResponseError as err:
-                    print(err)
-                    print("failed to process %s" % name)
-        else:
-            time.sleep(2)
-        if not control.empty():
-            message = control.get()
-            print("got a message in the upload loop: {}".format(message))
-            if message == "STOP":
-                print("asked to stop")
-                print("still {} items in the queue".format(queue.qsize()))
-                return
+
+def get_next_file():
+    for item in os.listdir('/out'):
+        if item.endswith(".h264")
+        fname = f'/out/{item}'
+        st = os.stat(fname)
+        if st.st_mtime > 11:
+            return fname
+    return None
 
 
-def main():
-    minioClient = Minio(os.environ.get("MINIO_URL", "inio-service.classroom.svc.cluster.local:9000"),
+def upload_loop(minioClient):
+    minioClient = Minio(os.environ.get("MINIO_URL", "minio-service.classroom.svc.cluster.local:9000"),
                         access_key=os.environ.get("MINIO_KEY", "wildflower-classroom"),
                         secret_key=os.environ.get("MINIO_SECRET"),
                         secure=False)
@@ -127,14 +94,37 @@ def main():
         pass
     except ResponseError as err:
         raise
-    control_1 = Queue()
-    control_2 = Queue()
-    queue = Queue()
-    capture_process = Process(target=capture_loop, args=(control_1, queue, ))
-    capture_process.start()
+    while True:
+        print("=" * 80)
+        print(" upload loop")
+        print("=" * 80)
+        name = get_next_file()
+        if name:
+            try:
+                start = datetime.datetime.now()
+                mp4_name = "%s.mp4" % name[:-5]
+                (
+                    ffmpeg
+                    .input(name, format="h264", r=str(CAMERA_FRAMERATE))
+                    .output(mp4_name, **{"format": "mp4", "c:v": "copy", "r": str(CAMERA_FRAMERATE)})
+                    .run(quiet=False)
+                )
+                print('repackage took %s' % (datetime.datetime.now() - start).total_seconds())
+                time.sleep(1)
+                ts = name[11:-5]
+                obj_name = ('%s/%s.mp4' % (ASSIGNMENT_ID, ts)).replace("_", "/")
+                print("putting %s on minio" % obj_name)
+                minioClient.fput_object(BUCKET, obj_name, mp4_name, content_type='video/mp4', metadata={
+                                        "source": ASSIGNMENT_ID,
+                                        "ts": ts,
+                                        "duration": "%ss" % PERIOD,
+                                        })
+                os.remove(name)
+                os.remove(mp4_name)
+            except ResponseError as err:
+                print(err)
+                print("failed to process %s" % name)
+    else:
+        time.sleep(2)
 
-    ffmpeg_process = Process(target=upload_loop, args=(control_2, queue, minioClient, ))
-    ffmpeg_process.start()
 
-    capture_process.join()
-    ffmpeg_process.join()

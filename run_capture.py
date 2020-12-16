@@ -1,5 +1,5 @@
-from capture import main
+from capture import capture_loop
 
 
 if __name__ == '__main__':
-    main()
+    capture_loop()
