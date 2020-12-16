@@ -72,11 +72,11 @@ def capture_loop():
 
 def get_next_file():
     for item in os.listdir('/out'):
-        if item.endswith(".h264")
-        fname = f'/out/{item}'
-        st = os.stat(fname)
-        if st.st_mtime > 11:
-            return fname
+        if item.endswith(".h264"):
+            fname = f'/out/{item}'
+            st = os.stat(fname)
+            if st.st_mtime > 11:
+                return fname
     return None
 
 
