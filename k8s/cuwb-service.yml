@@ -1,0 +1,43 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: cuwb-udp-service
+  namespace: classroom
+spec:
+  selector:
+    app: cuwb-udp-listener
+  ports:
+    - protocol: UDP
+      name: cuwb-udp-listener-udp-port
+      port: 7667
+      targetPort: 7667
+      nodePort: 32222
+  type: NodePort
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cuwb-udp-listener
+  namespace: classroom
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cuwb-udp-listener
+  template:
+    metadata:
+      namespace: classroom
+      labels:
+        app: cuwb-udp-listener
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: "classroom-cuwb-stream"
+          image: "wildflowerschools/classroom-cuwb-steam:v0"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 7667
+              protocol: UDP
+      nodeSelector:
+        wf-type: "control"
