@@ -37,6 +37,7 @@ data:
         path /var/log/fluentd-buffers/s3.buffer
         timekey "#{ENV['S3_TIMEKEY'] || '3600'}"
         timekey_use_utc true
+        timekey_wait "#{ENV['S3_TIMEKEY_WAIT'] || '60'}"
         chunk_limit_size "#{ENV['S3_CHUNK_LIMIT_SIZE'] || '256m'}"
       </buffer>
     </match>
@@ -51,13 +52,13 @@ data:
     <source>
       @type tail
       @id in_tail_container_logs
-      path "#{ENV['FLUENT_CONTAINER_TAIL_PATH'] || '/var/log/containers/*.log'}"
+      path "#{ENV['FLUENTD_CONTAINER_TAIL_PATH'] || '/var/log/containers/*.log'}"
       pos_file /var/log/fluentd-containers.log.pos
-      tag "#{ENV['FLUENT_CONTAINER_TAIL_TAG'] || 'kubernetes.*'}"
-      exclude_path "#{ENV['FLUENT_CONTAINER_TAIL_EXCLUDE_PATH'] || use_default}"
+      tag "#{ENV['FLUENTD_CONTAINER_TAIL_TAG'] || 'kubernetes.*'}"
+      exclude_path "#{ENV['FLUENTD_CONTAINER_TAIL_EXCLUDE_PATH'] || use_default}"
       read_from_head true
       <parse>
-        @type "#{ENV['FLUENT_CONTAINER_TAIL_PARSER_TYPE'] || 'json'}"
+        @type "#{ENV['FLUENTD_CONTAINER_TAIL_PARSER_TYPE'] || 'json'}"
         time_format %Y-%m-%dT%H:%M:%S.%NZ
       </parse>
     </source>

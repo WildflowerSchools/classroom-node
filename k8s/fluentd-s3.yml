@@ -29,7 +29,7 @@ spec:
               value: disable
             - name: S3_TIMEKEY
               value: "600" # Upload logs every 10 minutes
-            - name: FLUENT_CONTAINER_TAIL_PATH
+            - name: FLUENTD_CONTAINER_TAIL_PATH
               value: '/var/log/containers/udp-listener*.log' # Container logs take on the format <<POD_NAME>>_<<NAMESPACE>>_<<CONTAINER_NAME>>_<<ID>>
           envFrom:
             - configMapRef:
