@@ -189,18 +189,18 @@ class PatchOperation(object):
                         name=self.name,
                         namespace=self.namespace,
                         body=self.patch)
-                    logger.info(f"Patch applied")
+                    logger.info("Patch applied")
                     logger.info(response)
                 except ApiException as e:
                     if e.status != 404:
                         logger.error(e)
             elif self.kubetype == "deployment":
                 try:
-                    apps.patch_namespaced_deployment(
+                    response = apps.patch_namespaced_deployment(
                         name=self.name,
                         namespace=self.namespace,
                         body=self.patch)
-                    logger.info(f"Patch applied")
+                    logger.info("Patch applied")
                     logger.info(response)
                 except ApiException as e:
                     if e.status != 404:
