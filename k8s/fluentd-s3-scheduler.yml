@@ -42,7 +42,7 @@ spec:
           automountServiceAccountToken: true
           containers:
           - name: scheduler
-            image: wildflowerschools/k8s-task-scheduler:v6
+            image: wildflowerschools/k8s-task-scheduler:v10
             env:
             - name: CONFIG_PATH
               value: "/app/config/schedule.yaml"
@@ -79,11 +79,11 @@ data:
     actions:
       scale-up-log-capture:
         type: patch
-        resource: ["classroom", "daemon_set", "fluentd-s3"]
+        resource: ["kube-logging", "daemon-set", "fluentd-s3"]
         patch:
         - { "op": "replace", "path": "/spec/template/spec/nodeSelector/wf-type", "value": "control" }
       scale-down-log-capture:
         type: patch
-        resource: ["classroom", "daemon_set", "fluentd-s3"]
+        resource: ["kube-logging", "daemon-set", "fluentd-s3"]
         patch:
         - { "op": "replace", "path": "/spec/template/spec/nodeSelector/wf-type", "value": "non-existent" }

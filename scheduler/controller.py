@@ -181,7 +181,31 @@ class PatchOperation(object):
 
     def execute(self, brazil):
         logger.info(f"executing patch action '{self.patch}' against '{self.namespace}/{self.kubetype}/{self.name}'")
-        pass
+        if self.kubetype in SUPPORTED_APP_TYPES:
+            apps = client.AppsV1Api()
+            if self.kubetype == "daemon-set":
+                try:
+                    response = apps.patch_namespaced_daemon_set(
+                        name=self.name,
+                        namespace=self.namespace,
+                        body=self.patch)
+
+                    logger.info(f"Patch applied")
+                    logger.info(response)
+                except ApiException as e:
+                    if e.status != 404:
+                        logger.error(e)
+            elif self.kubetype == "deployment":
+                try:
+                    logger.info(f"Running patch against deployment...")
+                    apps.patch_namespaced_deployment(
+                        name=self.name,
+                        namespace=self.namespace,
+                        body=self.patch)
+                    logger.info(f"Patch applied")
+                except ApiException as e:
+                    if e.status != 404:
+                        logger.error(e)
 
     @classmethod
     def from_dict(cls, the_dict):
