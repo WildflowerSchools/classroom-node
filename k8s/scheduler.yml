@@ -42,7 +42,7 @@ spec:
           automountServiceAccountToken: true
           containers:
           - name: scheduler
-            image: wildflowerschools/k8s-task-scheduler:v5
+            image: wildflowerschools/k8s-task-scheduler:v6
             # command: ["sleep", "3000"]
             env:
             - name: CONFIG_PATH

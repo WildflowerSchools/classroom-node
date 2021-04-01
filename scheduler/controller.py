@@ -180,7 +180,7 @@ class PatchOperation(object):
         self.namespace = namespace
 
     def execute(self, brazil):
-        logger.info(f"executing patch action with {self.manifest}")
+        logger.info(f"executing patch action '{self.patch}' against '{self.namespace}/{self.kubetype}/{self.name}'")
         pass
 
     @classmethod
