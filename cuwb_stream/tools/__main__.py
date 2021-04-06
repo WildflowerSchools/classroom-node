@@ -3,9 +3,9 @@ import socket
 
 import click
 
-from cuwb_stream.collector import CUWBCollector
-from cuwb_stream.network import ensure_network_is_running, ensure_network_is_stopped
-from cuwb_stream.tools.snooplogg import DatabaseConnectionSnoop
+from cuwb_sensor.collector import CUWBCollector
+from cuwb_sensor.network import ensure_network_is_running, ensure_network_is_stopped
+from cuwb_sensor.tools.snooplogg import DatabaseConnectionSnoop
 
 
 def get_local_ip(routable_ip='8.8.8.8'):
@@ -42,10 +42,7 @@ def collect(ctx, consumer, environment_name_honeycomb=None, path_csv=None, ip=No
     with CUWBCollector(ip, int(port), interface) as collector:
         for bit in collector:
             if bit:
-                if consumer == 'honeycomb':
-                    bit['timestamp'] = bit['timestamp'].isoformat()
                 database_connection.write_datapoint_object_time_series(
-                    timestamp=bit.get("timestamp"),
                     object_id=bit.get("serial_number"),
                     data=bit
                 )
