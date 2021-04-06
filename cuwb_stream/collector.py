@@ -63,7 +63,10 @@ class CUWBCollector:
             self.listen_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.listen_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.listen_socket.bind((self.ip, self.port))
-            self.listen_socket.setsockopt(socket.SOL_IP, socket.IP_ADD_MEMBERSHIP, socket.inet_aton(self.ip) + socket.inet_aton(self.interface))
+            try:
+                self.listen_socket.setsockopt(socket.SOL_IP, socket.IP_ADD_MEMBERSHIP, socket.inet_aton(self.ip) + socket.inet_aton(self.interface))
+            except:
+                logging.error("Failed connecting to socket through remote IP, falling back to a non-routed local connection")
 
     def __enter__(self):
         self.start()
