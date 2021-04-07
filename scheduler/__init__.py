@@ -123,12 +123,13 @@ def should_be_running_now(schedule):
 
 class ScheduleEntry(object):
 
-    def __init__(self, start, end, days, start_action=None, end_action=None, probe_action=None):
+    def __init__(self, start, end, days, start_action=None, end_action=None, probe_action=None, terminate_action=None):
         self.start = start
         self.end = end
         self.start_action = start_action
         self.end_action = end_action
         self.probe_action = probe_action
+        self.terminate_action = terminate_action
         self.days = days
         if self.days is None:
             self.days = ALL_DAYS
@@ -143,6 +144,7 @@ class ScheduleEntry(object):
             "start_action": actions.get("start"),
             "end_action": actions.get("end"),
             "probe_action": actions.get("probe"),
+            "terminate_action": actions.get("terminate")
         }
         return cls(**props)
 
@@ -161,8 +163,11 @@ class ScheduleEntry(object):
             elif self._should_be_running_now(local):
                 logger.info(f"probe action {self.probe_action} should execute now, schedule entry should be running")
                 brazil.execute_action(self.probe_action)
+            elif self._should_not_be_running_now(local):
+                logger.info(f"terminate action {self.terminate_action} should execute now, schedule entry should NOT be running")
+                brazil.execute_action(self.terminate_action)
             else:
-                logger.debug("out of range")
+                logger.debug("Scheduled action out of range")
 
     def _should_start(self, local):
         if add_5(local) >= self.start and local <= self.start:
@@ -176,6 +181,11 @@ class ScheduleEntry(object):
 
     def _should_be_running_now(self, local):
         if local >= self.start and local <= self.end:
+            return True
+        return False
+
+    def _should_not_be_running_now(self, local):
+        if local >= self.end:
             return True
         return False
 

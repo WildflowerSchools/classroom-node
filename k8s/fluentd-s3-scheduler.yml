@@ -42,7 +42,7 @@ spec:
           automountServiceAccountToken: true
           containers:
           - name: scheduler
-            image: wildflowerschools/k8s-task-scheduler:v10
+            image: wildflowerschools/k8s-task-scheduler:v12
             env:
             - name: CONFIG_PATH
               value: "/app/config/schedule.yaml"
@@ -76,6 +76,7 @@ data:
         start: scale-up-log-capture
         end: scale-down-log-capture
         probe: scale-up-log-capture
+        terminate: scale-down-log-capture
     actions:
       scale-up-log-capture:
         type: patch
