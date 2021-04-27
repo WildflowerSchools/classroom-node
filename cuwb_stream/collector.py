@@ -90,9 +90,11 @@ class CUWBCollector:
                     logging.warning("Skipping '{}': Data item contains 'network_time', but a CUWBNetworkTime has not yet been interpolated".format(type_name))
                     return
 
-                if network_time < last_time_mapping.last_network_time_current:
-                    logging.warning("Skipping '{}': Data item's 'network_time' is less than the last recorded CUWBNetworkTime. Network has likely reset. Waiting for CUWBNetworkTime to refresh.".format(type_name))
-                    return
+                # 4/27/21 - Stop excluding instances when last synced network time is a more recent timestamp
+                #           than the timestamp in the IMU record
+                # if network_time < last_time_mapping.last_network_time_current:
+                #     logging.warning("Skipping '{}': Data item's 'network_time' is less than the last recorded CUWBNetworkTime. Network has likely reset. Waiting for CUWBNetworkTime to refresh.".format(type_name))
+                #     return
 
                 seconds_since_refresh = network_time_to_seconds(network_time - last_time_mapping.last_network_time_current)
                 if seconds_since_refresh > MAX_TIMESTAMP_REFRESH_DELAY:
