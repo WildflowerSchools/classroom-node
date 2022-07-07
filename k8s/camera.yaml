@@ -36,11 +36,80 @@ spec:
             value: "videos"
           - name: MINIO_URL
             value: "minio.classroom:9000"
+          - name: CAMERA_V_FLIP
+            value: "yes"
+          - name: CAMERA_H_FLIP
+            value: "yes"
         volumeMounts:
         - name: boot
           mountPath: /boot
         - name: video-buffer
           mountPath: /out
+      volumes:
+        - name: boot
+          hostPath:
+            path: /boot
+            type: Directory
+        - name: video-buffer
+          hostPath:
+            path: /data
+            type: Directory
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  namespace: classroom
+  name: capture-hq
+  labels:
+    name: capture-hq
+spec:
+  selector:
+    matchLabels:
+      name: capture-hq
+  template:
+    metadata:
+      namespace: classroom
+      labels:
+        name: capture-hq
+    spec:
+      dnsPolicy: ClusterFirstWithHostNet
+      enableServiceLinks: true
+      hostNetwork: true
+      nodeSelector:
+        wildflower-type: camera
+        wf-camera-type: HQ
+      containers:
+      - image: "wildflowerschools/classroom-node-capture:v45"
+        name: capture-hq
+        securityContext:
+          privileged: true
+        command: ["python", "run_capture.py"]
+        env:
+          - name: MINIO_KEY
+            value: "wildflower-classroom"
+          - name: MINIO_SECRET
+            value: "892347428463011457756120837563764010019"
+          - name: MINIO_BUCKET_NAME
+            value: "videos"
+          - name: MINIO_URL
+            value: "minio.classroom:9000"
+          - name: CAMERA_ISO_SETTING
+            value: "1500"
+          - name: CAMERA_EXPOSURE_MODE
+            value: "backlight"
+          - name: CAMERA_SHUTTER_SPEED
+            value: "40000"
+          - name: CAMERA_H_FLIP
+            value: "yes"
+          - name: CAMERA_V_FLIP
+            value: "yes"
+        volumeMounts:
+        - name: boot
+          mountPath: /boot
+        - name: video-buffer
+          mountPath: /out
+      imagePullSecrets:
+      - name: regcred
       volumes:
         - name: boot
           hostPath:

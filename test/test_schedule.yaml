@@ -1,0 +1,47 @@
+---
+timezone: "US/Eastern"
+events:
+- time: "07:00"
+  days: [0, 1, 2, 3, 4]
+  action: scale-down-thing
+- time: "17:30"
+  days: [0, 1, 2, 3, 4]
+  action: scale-up-thing
+- time: "09:00"
+  days: [5]
+  action: scale-down-thing
+schedules:
+- start: "07:00"
+  end: "16:20"
+  days: [0, 1, 2, 3, 4]
+  actions:
+    start: create-collector
+    end: delete-collector
+    probe: test-collector
+actions:
+  create-collector:
+    type: create
+    manifest: test/collector.yaml
+  delete-collector:
+    type: delete
+    resources:
+    - ["classroom", "config-map", "echoes-config"]
+    - ["classroom", "daemon-set", "echo-collector"]
+  test-collector:
+    type: status
+    resource: ["classroom", "daemon-set", "echo-collector"]
+    fields:
+    - name: current_number_scheduled
+      value: 0
+      op: GTE
+    on_failure: create-collector
+  scale-up-thing:
+    type: patch
+    resource: ["classroom", "deployment", "uploader"]
+    patch:
+    - { "op": "replace", "path": "/spec/replicas", "value": "8" }
+  scale-down-thing:
+    type: patch
+    resource: ["classroom", "deployment", "uploader"]
+    patch:
+    - { "op": "replace", "path": "/spec/replicas", "value": "2" }

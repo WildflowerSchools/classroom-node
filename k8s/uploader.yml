@@ -7,7 +7,7 @@ metadata:
   labels:
     name: uploader
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       name: uploader
@@ -20,7 +20,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       enableServiceLinks: true
       containers:
-      - image: "wildflowerschools/classroom-video-uploader:v49"
+      - image: "wildflowerschools/classroom-video-uploader:v63"
         name: uploader
         command: ["python", "-m", "uploader.__init__"]
         securityContext:
@@ -68,12 +68,15 @@ spec:
       labels:
         name: uploader-cleanup-active
     spec:
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
       dnsPolicy: ClusterFirstWithHostNet
       enableServiceLinks: true
       nodeSelector:
         wf-type: control
       containers:
-      - image: "wildflowerschools/classroom-video-uploader:v49"
+      - image: "wildflowerschools/classroom-video-uploader:v63"
         name: uploader-cleanup-active
         command: ["python", "-m", "uploader.cleanup", "--action", "cleanup-active"]
         securityContext:
@@ -126,12 +129,15 @@ spec:
       labels:
         name: uploader-queue-missed
     spec:
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
       dnsPolicy: ClusterFirstWithHostNet
       enableServiceLinks: true
       nodeSelector:
         wf-type: control
       containers:
-      - image: "wildflowerschools/classroom-video-uploader:v49"
+      - image: "wildflowerschools/classroom-video-uploader:v63"
         name: uploader-queue-missed
         command: ["python", "-m", "uploader.cleanup", "--action", "queue-missed"]
         securityContext:

@@ -40,6 +40,10 @@ def capture_loop():
             camera.iso = CAMERA_ISO_SETTING
             camera.exposure_mode = CAMERA_EXPOSURE_MODE
             camera.shutter_speed = CAMERA_SHUTTER_SPEED
+            print(f"period is {PERIOD}")
+            camera.hflip = CAMERA_H_FLIP
+            camera.vflip = CAMERA_V_FLIP
+            # camera.awb_mode = "incandescent"
 
             now = time.time()
             timeslot = next_timeslot(now)

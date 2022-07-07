@@ -7,6 +7,9 @@ CONTEXT=greenbrier
 CONTEXT=home-gpu
 MASTER=dudley-dowrong
 
+CONTEXT=dahlia
+MASTER=wftech-control-dahlia
+
 kubectl --context $CONTEXT apply -f kube-flannel.yml
 
 
@@ -15,24 +18,27 @@ kubectl --context $CONTEXT taint nodes $MASTER node-role.kubernetes.io/master:No
 kubectl --context $CONTEXT describe node $(kubectl --context $CONTEXT get nodes | grep master | awk '{print $1}')
 
 
-kubectl --context $CONTEXT apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.3/aio/deploy/recommended.yaml
-kubectl --context $CONTEXT apply -f dash-user.yml
+kubectl --context $CONTEXT apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.6.0/aio/deploy/recommended.yaml
+kubectl --context $CONTEXT -n kubernetes-dashboard apply -f dash-user.yml
 kubectl --context $CONTEXT -n kubernetes-dashboard describe secret $(kubectl --context $CONTEXT -n kubernetes-dashboard get secret | grep admin-user | awk '{print $1}')
 kubectl --context $CONTEXT get nodes
 kubectl --context $CONTEXT get pods --all-namespaces
 kubectl --context $CONTEXT proxy
 
 
+
 http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/
 
 
-kubectl --context $CONTEXT -n classroom port-forward service/minio 9000:9000
 
 
 kubectl --context $CONTEXT apply -f classroom-ns.yaml
 kubectl --context $CONTEXT  apply -f minio.yaml
-kubectl --context $CONTEXT  apply -f redis.yaml
 kubectl --context $CONTEXT  apply -f camera.yaml
+
+
+kubectl --context $CONTEXT -n classroom port-forward service/minio 9000:9000
+
 
 ## Notes
 
@@ -79,3 +85,15 @@ camera.capture('/data/foo.jpg')
 
 
 raspistill -o /data/image.jpg
+
+
+
+
+kubectl --context $CONTEXT -n inference port-forward service/nsqadmin 4171:4171
+
+
+
+
+
+
+kubectl --context home-gpu -n inference  get rabbitmqcluster rabbitmqcluster

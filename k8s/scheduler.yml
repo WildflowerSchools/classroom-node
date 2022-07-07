@@ -8,7 +8,7 @@ automountServiceAccountToken: true
 
 
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: classroom-scheduler
@@ -24,7 +24,7 @@ subjects:
 
 
 ---
-apiVersion: batch/v1beta1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   namespace: classroom
@@ -67,7 +67,7 @@ metadata:
   namespace: classroom
 data:
   schedule.yaml: |
-    timezone: "US/Eastern"
+    timezone: "US/Pacific"
     events: []
     schedules:
     - start: "08:00"
@@ -110,38 +110,115 @@ data:
           namespace: classroom
           labels:
             name: capture
-        spec:
-          dnsPolicy: ClusterFirstWithHostNet
-          enableServiceLinks: true
-          hostNetwork: true
-          nodeSelector:
-            wildflower-type: camera
-          containers:
-          - image: "wildflowerschools/classroom-node-capture:v27"
-            name: capture
-            securityContext:
-              privileged: true
-            # command: ["python", "-c", "import time\nwhile True:\n    time.sleep(3)"]
-            env:
-              - name: MINIO_KEY
-                value: "wildflower-classroom"
-              - name: MINIO_SECRET
-                value: "892347428463011457756120837563764010019"
-              - name: MINIO_BUCKET_NAME
-                value: "videos"
-              - name: MINIO_URL
-                value: "minio.classroom:9000"
-            volumeMounts:
-            - name: boot
-              mountPath: /boot
-            - name: video-buffer
-              mountPath: /out
-          volumes:
-            - name: boot
-              hostPath:
-                path: /boot
-                type: Directory
-            - name: video-buffer
-              hostPath:
-                path: /data
-                type: Directory
+        template:
+          metadata:
+            namespace: classroom
+            labels:
+              name: capture
+          spec:
+            dnsPolicy: ClusterFirstWithHostNet
+            enableServiceLinks: true
+            hostNetwork: true
+            nodeSelector:
+              wildflower-type: camera
+              wf-camera-type: v2
+            containers:
+            - image: "wildflowerschools/classroom-node-capture:v45"
+              name: capture
+              securityContext:
+                privileged: true
+              command: ["python", "run_capture.py"]
+              env:
+                - name: MINIO_KEY
+                  value: "wildflower-classroom"
+                - name: MINIO_SECRET
+                  value: "892347428463011457756120837563764010019"
+                - name: MINIO_BUCKET_NAME
+                  value: "videos"
+                - name: MINIO_URL
+                  value: "minio.classroom:9000"
+                - name: CAMERA_V_FLIP
+                  value: "yes"
+                - name: CAMERA_H_FLIP
+                  value: "yes"
+              volumeMounts:
+              - name: boot
+                mountPath: /boot
+              - name: video-buffer
+                mountPath: /out
+            imagePullSecrets:
+            - name: regcred
+            volumes:
+              - name: boot
+                hostPath:
+                  path: /boot
+                  type: Directory
+              - name: video-buffer
+                hostPath:
+                  path: /data
+                  type: Directory
+      ---
+      apiVersion: apps/v1
+      kind: DaemonSet
+      metadata:
+        namespace: classroom
+        name: capture-hq
+        labels:
+          name: capture-hq
+      spec:
+        selector:
+          matchLabels:
+            name: capture-hq
+        template:
+          metadata:
+            namespace: classroom
+            labels:
+              name: capture-hq
+          spec:
+            dnsPolicy: ClusterFirstWithHostNet
+            enableServiceLinks: true
+            hostNetwork: true
+            nodeSelector:
+              wildflower-type: camera
+              wf-camera-type: HQ
+            containers:
+            - image: "wildflowerschools/classroom-node-capture:v45"
+              name: capture-hq
+              securityContext:
+                privileged: true
+              command: ["python", "run_capture.py"]
+              env:
+                - name: MINIO_KEY
+                  value: "wildflower-classroom"
+                - name: MINIO_SECRET
+                  value: "892347428463011457756120837563764010019"
+                - name: MINIO_BUCKET_NAME
+                  value: "videos"
+                - name: MINIO_URL
+                  value: "minio.classroom:9000"
+                - name: CAMERA_ISO_SETTING
+                  value: "1500"
+                - name: CAMERA_EXPOSURE_MODE
+                  value: "backlight"
+                - name: CAMERA_SHUTTER_SPEED
+                  value: "40000"
+                - name: CAMERA_H_FLIP
+                  value: "yes"
+                - name: CAMERA_V_FLIP
+                  value: "yes"
+              volumeMounts:
+              - name: boot
+                mountPath: /boot
+              - name: video-buffer
+                mountPath: /out
+            imagePullSecrets:
+            - name: regcred
+            volumes:
+              - name: boot
+                hostPath:
+                  path: /boot
+                  type: Directory
+              - name: video-buffer
+                hostPath:
+                  path: /data
+                  type: Directory

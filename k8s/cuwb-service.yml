@@ -31,6 +31,9 @@ spec:
       labels:
         app: cuwb-udp-listener
     spec:
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
       restartPolicy: Always
       containers:
         - name: "classroom-cuwb-stream"

@@ -118,3 +118,6 @@ dmypy.json
 .pyre/
 
 configs/
+cams/
+
+.DS_Store
