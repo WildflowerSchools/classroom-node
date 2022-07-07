@@ -121,3 +121,5 @@ configs/
 cams/
 
 .DS_Store
+
+k8s/sucrets.txt
