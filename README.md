@@ -19,3 +19,40 @@ If running on more capable hardware the keyframes could be evaluated for things 
 ## Radio-Monitor
 
 A python service that connects to a network of DWM1001 modules over BLE to collect data. That data is queued to be sent to honeycomb. It is expected that this service runs on the proxy node.
+
+## CUWB-Stream
+
+Leverages fluentd to move Ciholas sensor data to S3
+
+### Build and push service
+
+```
+make build-cuwb-stream
+```
+
+### Deploy streaming service to k8
+
+```
+# Install envsubtr, on MacOS install through the gettext pkg
+brew install gettext
+brew link --force gettext 
+
+# Create a config and secrets file with S3 and AWS ENV keys
+kubectl apply -f ./k8s/kube-logging.yml
+kubectl apply -f ./private/aws-s3-write-auth-config.yml
+kubectl apply -f ./private/aws-s3-write-auth-secret.yml
+kubectl apply -f ./k8s/fluentd.yml
+kubectl apply -f ./k8s/fluentd-s3-config.yml
+kubectl apply -f ./k8s/fluentd-s3.yml
+
+TIMEZONE=US/Pacific envsubst < ./k8s/fluentd-s3-scheduler.yml | kubectl apply -f -
+```
+
+## Setup cluster with Docker Hub robot
+
+First login and then copy creds into the cluster:
+
+    docker login
+    # Provide username and PAT (personal access token)
+
+    kubectl create secret generic regcred --from-file=.dockerconfigjson=/home/wildflowertech/.docker/config.json --type=kubernetes.io/dockerconfigjson

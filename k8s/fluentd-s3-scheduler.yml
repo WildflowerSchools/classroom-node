@@ -8,7 +8,7 @@ automountServiceAccountToken: true
 
 
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: fluentd-s3-scheduler
@@ -24,7 +24,7 @@ subjects:
 
 
 ---
-apiVersion: batch/v1beta1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   namespace: classroom
@@ -38,6 +38,11 @@ spec:
     spec:
       template:
         spec:
+          tolerations:
+            - key: node-role.kubernetes.io/control-plane
+              effect: NoSchedule
+          nodeSelector:
+            wf-type: "control"
           serviceAccountName: fluentd-s3-scheduler
           automountServiceAccountToken: true
           containers:
@@ -66,7 +71,7 @@ metadata:
   namespace: classroom
 data:
   schedule.yaml: |
-    timezone: "US/Central"
+    timezone: $TIMEZONE
     events: []
     schedules:
     - start: "07:00"
