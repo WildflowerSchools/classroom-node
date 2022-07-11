@@ -10,10 +10,11 @@ import picamera
 import ffmpeg
 
 
-with open('/boot/wildflower-config.yml', 'r') as fp:
+with open('/boot/wildflower-config.yml', 'r', encoding="utf-8") as fp:
     config = yaml.safe_load(fp.read())
 
 
+DEVICE_ID = config.get("device_id", "unknown")
 ASSIGNMENT_ID = config.get("assignment-id", "unassigned")
 BUCKET = os.environ.get("MINIO_BUCKET_NAME", "videos")
 
@@ -25,6 +26,8 @@ PERIOD = os.environ.get("DURATION", 10)
 CAMERA_ISO_SETTING = int(os.environ.get("CAMERA_ISO_SETTING", 400))
 CAMERA_EXPOSURE_MODE = os.environ.get("CAMERA_EXPOSURE_MODE", 'sports')
 CAMERA_SHUTTER_SPEED = int(os.environ.get("CAMERA_SHUTTER_SPEED", 0))
+CAMERA_H_FLIP = os.environ.get("CAMERA_H_FLIP", 0)
+CAMERA_V_FLIP = os.environ.get("CAMERA_V_FLIP", 0)
 
 
 def next_timeslot(now):
@@ -41,9 +44,8 @@ def capture_loop():
             camera.exposure_mode = CAMERA_EXPOSURE_MODE
             camera.shutter_speed = CAMERA_SHUTTER_SPEED
             print(f"period is {PERIOD}")
-            camera.hflip = CAMERA_H_FLIP
-            camera.vflip = CAMERA_V_FLIP
-            # camera.awb_mode = "incandescent"
+            camera.hflip = CAMERA_H_FLIP == "yes"
+            camera.vflip = CAMERA_V_FLIP == "yes"
 
             now = time.time()
             timeslot = next_timeslot(now)
@@ -57,17 +59,16 @@ def capture_loop():
 
             # camera.start_preview()
             video_start_time = datetime.datetime.fromtimestamp(timeslot)
-            name = '/out/video-{:%Y_%m_%d_%H_%M-%S}.h264'.format(video_start_time)
+            name = f'/out/video-{video_start_time:%Y_%m_%d_%H_%M-%S}.h264'
             camera.start_recording(name, format='h264', intra_period=INTRA_PERIOD, bitrate=BITRATE)
             camera.wait_recording(PERIOD - 0.001)
             while True:
-                pname = name
                 timeslot += PERIOD
                 video_start_time = datetime.datetime.fromtimestamp(timeslot)
-                name = '/out/video-{:%Y_%m_%d_%H_%M-%S}.h264'.format(video_start_time)
+                name = f'/out/video-{video_start_time:%Y_%m_%d_%H_%M-%S}.h264'
                 camera.split_recording(name, format='h264', intra_period=INTRA_PERIOD, bitrate=BITRATE)
                 delay = timeslot + PERIOD - time.time()
-                print("waiting %s" % delay)
+                print(f"waiting {delay}")
                 camera.wait_recording(delay)
     except Exception as e:
         print(e)
@@ -92,12 +93,12 @@ def upload_loop():
 
     try:
         minioClient.make_bucket(BUCKET, location="us-east-1")
-    except BucketAlreadyOwnedByYou as err:
+    except BucketAlreadyOwnedByYou:
         pass
-    except BucketAlreadyExists as err:
+    except BucketAlreadyExists:
         pass
     except ResponseError as err:
-        raise
+        raise Exception("unhandled minio error") from err
     while True:
         print("=" * 80)
         print(" upload loop")
@@ -106,29 +107,27 @@ def upload_loop():
         if name:
             try:
                 start = datetime.datetime.now()
-                mp4_name = "%s.mp4" % name[:-5]
+                mp4_name = f"{name[:-5]}.mp4"
                 (
                     ffmpeg
                     .input(name, format="h264", r=str(CAMERA_FRAMERATE))
                     .output(mp4_name, **{"format": "mp4", "c:v": "copy", "r": str(CAMERA_FRAMERATE)})
                     .run(quiet=False)
                 )
-                print('repackage took %s' % (datetime.datetime.now() - start).total_seconds())
+                print(f'repackage took {(datetime.datetime.now() - start).total_seconds()}')
                 time.sleep(1)
                 ts = name[11:-5]
-                obj_name = ('%s/%s.mp4' % (ASSIGNMENT_ID, ts)).replace("_", "/")
-                print("putting %s on minio" % obj_name)
+                obj_name = (f'{DEVICE_ID}/{ts}.mp4').replace("_", "/")
+                print(f"putting {obj_name} on minio")
                 minioClient.fput_object(BUCKET, obj_name, mp4_name, content_type='video/mp4', metadata={
-                                        "source": ASSIGNMENT_ID,
+                                        "source": DEVICE_ID,
                                         "ts": ts,
-                                        "duration": "%ss" % PERIOD,
+                                        "duration": f"{PERIOD}s",
                                         })
                 os.remove(name)
                 os.remove(mp4_name)
             except ResponseError as err:
                 print(err)
-                print("failed to process %s" % name)
-    else:
-        time.sleep(2)
-
-
+                print(f"failed to process {name}")
+        else:
+            time.sleep(2)

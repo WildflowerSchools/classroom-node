@@ -5,9 +5,16 @@ VERSION := $(shell cat VERSION)
 show-version:
 	@echo $(VERSION)
 
-build-capture:
-	docker build -t wildflowerschools/classroom-node-capture:v${VERSION} -f capture/Dockerfile .
-	docker push wildflowerschools/classroom-node-capture:v${VERSION}
+build-capture: lint-capture
+	docker buildx create --name multiarch
+	docker buildx use multiarch
+	docker buildx build -t wildflowerschools/classroom-node-capture:v${VERSION} --platform linux/amd64,linux/arm64 -f capture/Dockerfile --push .
+	docker buildx rm multiarch
+
+lint-capture:
+	@pylint capture
+
+
 
 build-cuwb-stream:
 	docker buildx create --name multiarch

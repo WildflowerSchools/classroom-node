@@ -22,7 +22,7 @@ spec:
       nodeSelector:
         wildflower-type: camera
       containers:
-      - image: "wildflowerschools/classroom-node-capture:v27"
+      - image: "wildflowerschools/classroom-node-capture:v46"
         name: capture
         securityContext:
           privileged: true
@@ -79,7 +79,7 @@ spec:
         wildflower-type: camera
         wf-camera-type: HQ
       containers:
-      - image: "wildflowerschools/classroom-node-capture:v45"
+      - image: "wildflowerschools/classroom-node-capture:v46"
         name: capture-hq
         securityContext:
           privileged: true

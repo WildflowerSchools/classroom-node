@@ -1,9 +1,11 @@
 import io
-import picamera
 import logging
 import socketserver
 from threading import Condition
 from http import server
+
+import picamera
+
 
 PAGE="""\
 <html>
@@ -17,7 +19,7 @@ PAGE="""\
 </html>
 """
 
-class StreamingOutput(object):
+class StreamingOutput:
     def __init__(self):
         self.frame = None
         self.buffer = io.BytesIO()
