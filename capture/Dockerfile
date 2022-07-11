@@ -9,7 +9,7 @@ RUN apt install ffmpeg
 
 COPY ./capture/requirements.txt requirements.txt
 
-RUN pip install -r requirements.txt
+RUN READTHEDOCS=True pip install -r requirements.txt
 
 COPY ./capture/ /app/capture
 COPY ./run_capture.py /app/run_capture.py
