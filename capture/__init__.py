@@ -15,7 +15,6 @@ with open('/boot/wildflower-config.yml', 'r', encoding="utf-8") as fp:
 
 
 DEVICE_ID = config.get("device_id", "unknown")
-ASSIGNMENT_ID = config.get("assignment-id", "unassigned")
 BUCKET = os.environ.get("MINIO_BUCKET_NAME", "videos")
 
 CAMERA_RES = (os.environ.get("CAMERA_RES_W", 1296), os.environ.get("CAMERA_RES_H", 972))
@@ -115,7 +114,7 @@ def upload_loop():
                     .run(quiet=False)
                 )
                 print(f'repackage took {(datetime.datetime.now() - start).total_seconds()}')
-                time.sleep(1)
+                time.sleep(0.5)
                 ts = name[11:-5]
                 obj_name = (f'{DEVICE_ID}/{ts}.mp4').replace("_", "/")
                 print(f"putting {obj_name} on minio")

@@ -22,7 +22,7 @@ spec:
       nodeSelector:
         wildflower-type: camera
       containers:
-      - image: "wildflowerschools/classroom-node-capture:v45"
+      - image: "wildflowerschools/classroom-node-capture:v52"
         imagePullPolicy: Always
         name: upload
         securityContext:

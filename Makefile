@@ -4,7 +4,7 @@
 build-capture: lint-capture
 	sudo docker buildx create --name multiarch
 	sudo docker buildx use multiarch
-	sudo docker buildx build -t wildflowerschools/classroom-node-capture:v$(shell cat capture/VERSION) --platform linux/arm64,linux/arm/v7 -f capture/Dockerfile --push .
+	sudo docker buildx build -t wildflowerschools/classroom-node-capture:v$(shell cat capture/VERSION) --platform linux/arm/v7 -f capture/Dockerfile --push .
 	sudo docker buildx rm multiarch
 
 lint-capture:
