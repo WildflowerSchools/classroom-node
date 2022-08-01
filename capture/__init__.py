@@ -79,7 +79,7 @@ def get_next_file():
         if item.endswith(".h264"):
             fname = f'/out/{item}'
             st = os.stat(fname)
-            if st.st_mtime > 11:
+            if (time.time() - st.st_mtime) > 11 and st.st_size > 800000:
                 return fname
     return None
 
@@ -89,7 +89,6 @@ def upload_loop():
                         access_key=os.environ.get("MINIO_KEY", "wildflower-classroom"),
                         secret_key=os.environ.get("MINIO_SECRET"),
                         secure=False)
-
     try:
         minioClient.make_bucket(BUCKET, location="us-east-1")
     except BucketAlreadyOwnedByYou:
@@ -99,9 +98,6 @@ def upload_loop():
     except ResponseError as err:
         raise Exception("unhandled minio error") from err
     while True:
-        print("=" * 80)
-        print(" upload loop")
-        print("=" * 80)
         name = get_next_file()
         if name:
             try:
@@ -114,7 +110,7 @@ def upload_loop():
                     .run(quiet=False)
                 )
                 print(f'repackage took {(datetime.datetime.now() - start).total_seconds()}')
-                time.sleep(0.5)
+                time.sleep(1)
                 ts = name[11:-5]
                 obj_name = (f'{DEVICE_ID}/{ts}.mp4').replace("_", "/")
                 print(f"putting {obj_name} on minio")

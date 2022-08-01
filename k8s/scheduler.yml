@@ -123,7 +123,7 @@ data:
               wildflower-type: camera
               wf-camera-type: v2
             containers:
-            - image: "wildflowerschools/classroom-node-capture:v46"
+            - image: "wildflowerschools/classroom-node-capture:v54"
               name: capture
               securityContext:
                 privileged: true
@@ -182,7 +182,7 @@ data:
               wildflower-type: camera
               wf-camera-type: HQ
             containers:
-            - image: "wildflowerschools/classroom-node-capture:v46"
+            - image: "wildflowerschools/classroom-node-capture:v54"
               name: capture-hq
               securityContext:
                 privileged: true
