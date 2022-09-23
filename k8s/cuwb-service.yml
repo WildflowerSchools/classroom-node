@@ -37,10 +37,13 @@ spec:
       restartPolicy: Always
       containers:
         - name: "classroom-cuwb-stream"
-          image: "wildflowerschools/classroom-cuwb-stream:v13"
+          image: "wildflowerschools/classroom-cuwb-stream:v16"
           imagePullPolicy: Always
           ports:
             - containerPort: 7667
               protocol: UDP
+          env:
+            - name: DEBUG
+              value: "false"
       nodeSelector:
         wf-type: "control"

@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 import socket
 
 import cdp
@@ -19,6 +20,8 @@ NETWORK_TIME_MAPPING_V1 = 0x015A
 
 MAX_TIMESTAMP_REFRESH_DELAY = 60  # seconds before we lose confidence in our interpolated real time value
 
+
+DEBUG = os.getenv('DEBUG', "False").lower() in ('true', '1', 't')
 
 class CUWBNetworkTimeMapping:
     def __init__(self,
@@ -79,8 +82,7 @@ class CUWBCollector:
     def extract_data_items(self, socket_read_time, data_item_type, type_name, cdp_packet, fields, last_time_mapping: CUWBNetworkTimeMapping=None, debug=False):
         for item in cdp_packet.data_items_by_type.get(data_item_type, []):
             if debug:
-                print(item.definition)
-                print(item)
+                logging.warning("Logging {}: Definition: {} - Full Item: {}".format(type_name, item.definition, item))
 
             timestamp = None
             if 'network_time' in fields:
@@ -139,7 +141,7 @@ class CUWBCollector:
                 'real_time_current',
                 'network_time_previous',
                 'network_time_current']
-            for item in self.extract_data_items(socket_read_time, NETWORK_TIME_MAPPING_V1, 'network_time', cdp_packet, fields, last_time_mapping=last_time_mapping):
+            for item in self.extract_data_items(socket_read_time, NETWORK_TIME_MAPPING_V1, 'network_time', cdp_packet, fields, last_time_mapping=last_time_mapping, debug=DEBUG):
                 # Resync network time
                 last_time_mapping = CUWBNetworkTimeMapping(last_real_time_previous=item['real_time_previous'],
                                                            last_real_time_current=item['real_time_current'],
@@ -155,11 +157,11 @@ class CUWBCollector:
                 'z',
                 'scale',
             ]
-            for item in self.extract_data_items(socket_read_time, ACCELEROMETER_V2, 'accelerometer', cdp_packet, fields, last_time_mapping=last_time_mapping):
+            for item in self.extract_data_items(socket_read_time, ACCELEROMETER_V2, 'accelerometer', cdp_packet, fields, last_time_mapping=last_time_mapping, debug=DEBUG):
                 yield item
-            for item in self.extract_data_items(socket_read_time, GYROSCOPE_V2, 'gyroscope', cdp_packet, fields, last_time_mapping=last_time_mapping):
+            for item in self.extract_data_items(socket_read_time, GYROSCOPE_V2, 'gyroscope', cdp_packet, fields, last_time_mapping=last_time_mapping, debug=DEBUG):
                 yield item
-            for item in self.extract_data_items(socket_read_time, MAGNETOMETER_V2, 'magnetometer', cdp_packet, fields, last_time_mapping=last_time_mapping):
+            for item in self.extract_data_items(socket_read_time, MAGNETOMETER_V2, 'magnetometer', cdp_packet, fields, last_time_mapping=last_time_mapping, debug=DEBUG):
                 yield item
 
             fields = [
@@ -171,16 +173,16 @@ class CUWBCollector:
                 'w',
                 'quaternion_type',
             ]
-            for item in self.extract_data_items(socket_read_time, QUATERNION_V2, 'quaternion', cdp_packet, fields, last_time_mapping=last_time_mapping):
+            for item in self.extract_data_items(socket_read_time, QUATERNION_V2, 'quaternion', cdp_packet, fields, last_time_mapping=last_time_mapping, debug=DEBUG):
                 yield item
 
-            for item in self.extract_data_items(socket_read_time, PRESSURE_V2, 'pressure', cdp_packet, ['serial_number', 'network_time', 'pressure', 'scale'], last_time_mapping=last_time_mapping):
+            for item in self.extract_data_items(socket_read_time, PRESSURE_V2, 'pressure', cdp_packet, ['serial_number', 'network_time', 'pressure', 'scale'], last_time_mapping=last_time_mapping, debug=DEBUG):
                 yield item
 
-            for item in self.extract_data_items(socket_read_time, TEMPERATURE_V2, 'temperature', cdp_packet, ['serial_number', 'network_time', 'temperature', 'scale'], last_time_mapping=last_time_mapping):
+                for item in self.extract_data_items(socket_read_time, TEMPERATURE_V2, 'temperature', cdp_packet, ['serial_number', 'network_time', 'temperature', 'scale'], last_time_mapping=last_time_mapping, debug=DEBUG):
                 yield item
 
-            for item in self.extract_data_items(socket_read_time, DEVICE_NAMES, 'names', cdp_packet, ['serial_number', 'name'], last_time_mapping=last_time_mapping):
+            for item in self.extract_data_items(socket_read_time, DEVICE_NAMES, 'names', cdp_packet, ['serial_number', 'name'], last_time_mapping=last_time_mapping, debug=DEBUG):
                 yield item
 
             fields = [
@@ -194,7 +196,7 @@ class CUWBCollector:
                 'flags',
                 'smoothing',
             ]
-            for item in self.extract_data_items(socket_read_time, POSITION_V3, 'position', cdp_packet, fields, last_time_mapping=last_time_mapping):
+            for item in self.extract_data_items(socket_read_time, POSITION_V3, 'position', cdp_packet, fields, last_time_mapping=last_time_mapping, debug=DEBUG):
                 yield item
 
             fields = [
@@ -206,7 +208,7 @@ class CUWBCollector:
                 'temperature',
                 'processor_usage',
             ]
-            for item in self.extract_data_items(socket_read_time, HARDWARE_STATUS_V2, 'status', cdp_packet, fields, last_time_mapping=last_time_mapping):
+            for item in self.extract_data_items(socket_read_time, HARDWARE_STATUS_V2, 'status', cdp_packet, fields, last_time_mapping=last_time_mapping, debug=DEBUG):
                 yield item
 
             fields = [
@@ -222,7 +224,7 @@ class CUWBCollector:
                 'interanchor_comms_error_code',
                 'bad_paired_anchors',
             ]
-            for item in self.extract_data_items(socket_read_time, ANCHOR_HEALTH_V5, 'anchor_health', cdp_packet, fields, last_time_mapping=last_time_mapping):
+            for item in self.extract_data_items(socket_read_time, ANCHOR_HEALTH_V5, 'anchor_health', cdp_packet, fields, last_time_mapping=last_time_mapping, debug=DEBUG):
                 yield item
 
 

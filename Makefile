@@ -2,6 +2,7 @@
 
 
 build-capture: lint-capture
+	-docker buildx rm multiarch
 	docker buildx create --name multiarch
 	docker buildx use multiarch
 	docker buildx build -t wildflowerschools/classroom-node-capture:v$(shell cat capture/VERSION) --platform linux/arm/v7 -f capture/Dockerfile --push .
@@ -11,12 +12,14 @@ lint-capture:
 	@pylint capture
 
 build-cuwb-stream:
+	-docker buildx rm multiarch
 	sudo docker buildx create --name multiarch
 	sudo docker buildx use multiarch
 	sudo docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t wildflowerschools/classroom-cuwb-stream:v$(shell cat cuwb_stream/VERSION) -f cuwb_stream/Dockerfile --push .
 	sudo docker buildx rm multiarch
 
 build-scheduler:
+	-docker buildx rm multiarch
 	sudo docker buildx create --name multiarch
 	sudo docker buildx use multiarch
 	sudo docker buildx build -t wildflowerschools/k8s-task-scheduler:v$(shell cat scheduler/VERSION) --platform linux/amd64,linux/arm64,linux/arm/v7 -f scheduler/Dockerfile --push .

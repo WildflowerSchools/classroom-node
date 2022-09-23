@@ -58,7 +58,8 @@ data:
       exclude_path "#{ENV['FLUENTD_CONTAINER_TAIL_EXCLUDE_PATH'] || use_default}"
       read_from_head true
       <parse>
-        @type "#{ENV['FLUENTD_CONTAINER_TAIL_PARSER_TYPE'] || 'json'}"
-        time_format %Y-%m-%dT%H:%M:%S.%NZ
+        @type "#{ENV['FLUENTD_CONTAINER_TAIL_PARSER_TYPE'] || 'regexp'}"
+        expression /^(?<time>.+) (?<stream>stdout|stderr)( (?<logtag>.))? (?<log>.*)$/
+        time_format %Y-%m-%dT%H:%M:%S.%N%:z
       </parse>
     </source>

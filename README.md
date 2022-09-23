@@ -24,6 +24,16 @@ A python service that connects to a network of DWM1001 modules over BLE to colle
 
 Leverages fluentd to move Ciholas sensor data to S3
 
+Before deploying the service, update the Ciholas network config as follows:
+
+|        | IP                | Port   | Interface |
+|--------|-------------------|--------|-----------|
+| Config | 239.255.76.67     | 7671   | 0.0.0.0   |
+| Input  | 239.255.76.67     | 7667   | 0.0.0.0   |
+| Output | 0.0.0.0           | 32222  | 0.0.0.0   |
+
+PS: In order to resolve an issue with the anchors disconnecting and not reconnecting, you may need to set the interface IPs of the Config and Input rows to the ethernet device's IP (Use `ifconfig`) 
+
 ### Build and push service
 
 ```
@@ -46,6 +56,8 @@ kubectl apply -f ./k8s/fluentd-s3-config.yml
 kubectl apply -f ./k8s/fluentd-s3.yml
 
 TIMEZONE=US/Pacific envsubst < ./k8s/fluentd-s3-scheduler.yml | kubectl apply -f -
+
+kubectl apply -f ./k8s/cuwb-service.yml 
 ```
 
 ## Setup cluster with Docker Hub robot
