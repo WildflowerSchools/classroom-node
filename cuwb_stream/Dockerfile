@@ -1,4 +1,4 @@
-FROM python:3.7.10-alpine
+FROM python:3.10.7-alpine
 
 COPY ./cuwb_stream/requirements.txt requirements.txt
 

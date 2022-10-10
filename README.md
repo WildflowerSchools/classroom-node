@@ -68,3 +68,17 @@ First login and then copy creds into the cluster:
     # Provide username and PAT (personal access token)
 
     kubectl create secret generic regcred --from-file=.dockerconfigjson=/home/wildflowertech/.docker/config.json --type=kubernetes.io/dockerconfigjson
+
+
+## Logz + Fluentd Experiment
+
+    kubectl create namespace monitoring
+
+    kubectl create secret generic logzio-logs-secret \
+        --from-literal=logzio-log-shipping-token='<<REDACTED>>' \
+        --from-literal=logzio-log-listener='https://listener.logz.io:8071' \
+        -n monitoring
+
+    # fluentd-general-config.yml contains the CLASSROOM_ENVIRONMENT env var
+    kubectl apply -f ./private/fluentd-general-config.yml
+    kubectl apply -f ./k8s/fluentd-general-config.yml -f ./k8s/fluentd-general-monitoring.yml

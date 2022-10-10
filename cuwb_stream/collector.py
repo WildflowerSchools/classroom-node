@@ -35,6 +35,9 @@ class CUWBNetworkTimeMapping:
         self.last_network_time_current = last_network_time_current
 
     def rt_per_nt(self):
+        if self.last_network_time_current == self.last_network_time_previous:
+            return 0
+
         return (self.last_real_time_current - self.last_real_time_previous) /\
                (self.last_network_time_current - self.last_network_time_previous)
 
@@ -179,7 +182,7 @@ class CUWBCollector:
             for item in self.extract_data_items(socket_read_time, PRESSURE_V2, 'pressure', cdp_packet, ['serial_number', 'network_time', 'pressure', 'scale'], last_time_mapping=last_time_mapping, debug=DEBUG):
                 yield item
 
-                for item in self.extract_data_items(socket_read_time, TEMPERATURE_V2, 'temperature', cdp_packet, ['serial_number', 'network_time', 'temperature', 'scale'], last_time_mapping=last_time_mapping, debug=DEBUG):
+            for item in self.extract_data_items(socket_read_time, TEMPERATURE_V2, 'temperature', cdp_packet, ['serial_number', 'network_time', 'temperature', 'scale'], last_time_mapping=last_time_mapping, debug=DEBUG):
                 yield item
 
             for item in self.extract_data_items(socket_read_time, DEVICE_NAMES, 'names', cdp_packet, ['serial_number', 'name'], last_time_mapping=last_time_mapping, debug=DEBUG):
