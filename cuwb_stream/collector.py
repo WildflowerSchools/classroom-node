@@ -17,6 +17,7 @@ DEVICE_NAMES = 0x013F
 HARDWARE_STATUS_V2 = 0x0138
 ANCHOR_HEALTH_V5 = 0x014A
 NETWORK_TIME_MAPPING_V1 = 0x015A
+DEVICE_ACTIVITY_STATE = 0x0137
 
 MAX_TIMESTAMP_REFRESH_DELAY = 60  # seconds before we lose confidence in our interpolated real time value
 
@@ -228,6 +229,19 @@ class CUWBCollector:
                 'bad_paired_anchors',
             ]
             for item in self.extract_data_items(socket_read_time, ANCHOR_HEALTH_V5, 'anchor_health', cdp_packet, fields, last_time_mapping=last_time_mapping, debug=DEBUG):
+                yield item
+
+            fields = [
+                'serial_number',
+                'interface_id',
+                'x',
+                'y',
+                'z',
+                'role_id',
+                'connectivity_state',
+                'synchronization_state'
+            ]
+            for item in self.extract_data_items(socket_read_time, DEVICE_ACTIVITY_STATE, 'device_activity_state', cdp_packet, fields, last_time_mapping=last_time_mapping, debug=DEBUG):
                 yield item
 
 
