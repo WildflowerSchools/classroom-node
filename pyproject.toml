@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "wf-camera-utils"
+version = "1.0.3"
+description = "utilities for wildflower cameras and raspberry pi"
+authors = ["Paul J DeCoursey <paul@decoursey.net>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "capture"}, {include = "cuwb_stream"}]
+
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+
+[tool.poetry.group.dev.dependencies]
+pylint = "^2.15.5"
+
+
+[tool.poetry.group.capture.dependencies]
+picamera = "1.13"
+ffmpeg-python = "0.1.17"
+minio = "4.0.15"
+pyyaml = ">=4.2b1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
