@@ -28,7 +28,7 @@ spec:
         env:
           - name: MINIO_BUCKET_NAME
             value: "videos"
-          - name: MINIO_HOST
+          - name: MINIO_URL
             value: "minio.classroom:9000"
           - name: UPLOADER_REDIS_HOST
             value: "redis.classroom"
@@ -84,12 +84,10 @@ spec:
         env:
           - name: MINIO_BUCKET_NAME
             value: "videos"
-          - name: MINIO_HOST
+          - name: MINIO_URL
             value: "minio.classroom:9000"
           - name: UPLOADER_REDIS_HOST
             value: "redis.classroom"
-          - name: TELEGRAF_HOST
-            value: telegraf.tick.svc.cluster.local
         envFrom:
           - secretRef:
               name: minio-settings
@@ -147,7 +145,7 @@ spec:
             value: "1600"
           - name: MINIO_BUCKET_NAME
             value: "videos"
-          - name: MINIO_HOST
+          - name: MINIO_URL
             value: "minio.classroom:9000"
           - name: UPLOADER_REDIS_HOST
             value: "redis.classroom"
