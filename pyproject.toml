@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "wf-camera-utils"
-version = "1.0.3"
+version = "1.0.5"
 description = "utilities for wildflower cameras and raspberry pi"
 authors = ["Paul J DeCoursey <paul@decoursey.net>"]
 license = "MIT"

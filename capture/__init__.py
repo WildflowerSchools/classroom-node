@@ -88,7 +88,7 @@ def get_next_file():
         if item.endswith(".h264"):
             fname = f'/out/{item}'
             st = os.stat(fname)
-            if (time.time() - st.st_mtime) > 11 and st.st_size > 800000:
+            if (time.time() - st.st_mtime) > 11 and st.st_size > 10000:
                 return fname
     return None
 
