@@ -26,15 +26,15 @@ Leverages fluentd to move Ciholas sensor data to S3
 
 Before deploying the service, update the Ciholas network config as follows:
 
-|        | IP                | Port   | Interface |
-|--------|-------------------|--------|-----------|
-| Config | 239.255.76.67     | 7671   | 0.0.0.0   |
-| Input  | 239.255.76.67     | 7667   | 0.0.0.0   |
-| Output | 0.0.0.0           | 32222  | 0.0.0.0   |
+|        | IP                | Port   | Interface           |
+|--------|-------------------|--------|---------------------|
+| Config | 239.255.76.67     | 7671   | <<CONTROL PC IP>>   |
+| Input  | 239.255.76.67     | 7667   | <<CONTROL PC IP>>   |
+| Output | 0.0.0.0           | 32222  | <<CONTROL PC IP>>   |
 
 PS: In order to resolve an issue with the anchors disconnecting and not reconnecting, you may need to set the interface IPs of the Config and Input rows to the ethernet device's IP (Use `ifconfig`) 
 
-### Build and push service
+### Build and push cuwb service
 
 ```
 make build-cuwb-stream
@@ -82,3 +82,15 @@ First login and then copy creds into the cluster:
     # fluentd-general-config.yml contains the CLASSROOM_ENVIRONMENT env var
     kubectl apply -f ./private/fluentd-general-config.yml
     kubectl apply -f ./k8s/fluentd-general-config.yml -f ./k8s/fluentd-general-monitoring.yml
+
+
+## Test CUWB Streamer with CDP Player
+
+1) First start the CDP Player (Docker required)
+```
+make run-cdp-player REPO_NAME=<<CUSTOM PPA CIHOLAS CREATED FOR WILDFLOWER>>
+```
+
+2) Connect to the UDP data stream
+
+UDP data will stream over your local host machine at `0.0.0.0:7667`
