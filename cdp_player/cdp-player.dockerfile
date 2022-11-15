@@ -11,11 +11,6 @@ RUN apt update && apt upgrade -y && \
 RUN useradd -m docker && echo "docker:docker" | chpasswd && adduser docker sudo
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-#WORKDIR /cuwb_stream
-
-#ADD cuwb_stream/ /cuwb_stream
-#RUN pip install -r requirements.txt
-
 WORKDIR /cdp-logger
 
 USER docker

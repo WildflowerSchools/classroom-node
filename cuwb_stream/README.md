@@ -2,13 +2,21 @@
 
 Capture UWB UDP packets and decode them into meaningful messages.
 
+## Test
+
+```
+cd cuwb_stream
+pip install -r development.txt
+REPO_NAME=<<CUSTOM PPA CIHOLAS CREATED FOR WILDFLOWER>> pytest ./tests 
+```
+
 ## Production
 
 This app is deployed in our classroom K8 environment. A K8 NodePort is created to 
 redirect traffic from the node (i.e Control PC) into the Pod environment. The Logger
 binds to the UDP port where data is being redirected.
 
-## CDP Logger
+### CDP Logger
 
 If you need to capture the CDP data stream while running the Logger in the K8 cluster,
 you will need to multicast the UDP traffic. Unfortunately, we can't bind the CDP Logger
@@ -16,9 +24,9 @@ to the UDP port AND create the NodePort. Only one connection can be active at on
 The following steps are how to install `samplicator` in order to duplicate the UDP data
 and send it to multiple ports.
 
-### Samplicator
+#### Samplicator
 
-#### Install
+##### Install
 
 1) `mkdir -p ~/Wildflower && cd ~/Wildflower`
 2) `git checkout https://github.com/sleinen/samplicator`

@@ -62,11 +62,19 @@ kubectl apply -f ./k8s/cuwb-service.yml
 
 ### Test CUWB Steaming logger
 
-```
-cd cuwb_stream
-pip install -r development.txt
-REPO_NAME=<<CUSTOM PPA CIHOLAS CREATED FOR WILDFLOWER>> pytest ./tests 
-```
+See the [cdp_player README](./cuwb_stream/README.md#Test)
+
+## CDP Player
+
+You can use the Makefile to build or run the cdp-player. You can also [work with cdp-player directly](./cdp_player/README.md).
+
+### Build
+
+`make build-cdp-player REPO_NAME=<<Ciholas PPA Repository Name>>`
+
+### Run 
+
+`make run-cdp-player REPO_NAME=<<Ciholas PPA Repository Name>>`
 
 ## Setup cluster with Docker Hub robot
 
@@ -90,15 +98,3 @@ First login and then copy creds into the cluster:
     # fluentd-general-config.yml contains the CLASSROOM_ENVIRONMENT env var
     kubectl apply -f ./private/fluentd-general-config.yml
     kubectl apply -f ./k8s/fluentd-general-config.yml -f ./k8s/fluentd-general-monitoring.yml
-
-
-## Test CUWB Streamer with CDP Player
-
-1) First start the CDP Player (Docker required)
-```
-make run-cdp-player REPO_NAME=<<CUSTOM PPA CIHOLAS CREATED FOR WILDFLOWER>>
-```
-
-2) Connect to the UDP data stream
-
-UDP data will stream over your local host machine at `0.0.0.0:7667`
