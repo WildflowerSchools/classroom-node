@@ -60,6 +60,14 @@ TIMEZONE=US/Pacific envsubst < ./k8s/fluentd-s3-scheduler.yml | kubectl apply -f
 kubectl apply -f ./k8s/cuwb-service.yml 
 ```
 
+### Test CUWB Steaming logger
+
+```
+cd cuwb_stream
+pip install -r development.txt
+REPO_NAME=<<CUSTOM PPA CIHOLAS CREATED FOR WILDFLOWER>> pytest ./tests 
+```
+
 ## Setup cluster with Docker Hub robot
 
 First login and then copy creds into the cluster:

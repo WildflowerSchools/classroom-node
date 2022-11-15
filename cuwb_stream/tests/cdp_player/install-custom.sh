@@ -64,6 +64,12 @@ function add_ppa_if_needed() {
     fi
 }
 
+function install_cuwb_network() {
+    waitForDpkg
+    echo 'Installing CUWB network'
+    sudo apt install -y cuwb-network
+}
+
 # CDP Logger
 function install_cdp_logger() {
     waitForDpkg
@@ -88,5 +94,6 @@ sudo apt update
 waitForDpkg
 
 install_cdp_logger
+#install_cuwb_network
 
 exit 0

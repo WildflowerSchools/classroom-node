@@ -27,17 +27,20 @@ DEBUG = os.getenv('DEBUG', "False").lower() in ('true', '1', 't')
 
 class CUWBCollector:
 
-    def __init__(self, ip, port, interface):
+    def __init__(self, ip, port, interface, timeout=None):
         self.ip = ip
         self.port = port
         self.interface = interface
         self.listen_socket = None
+        self.timeout = timeout
 
     def start(self):
         if not self.listen_socket:
             self.listen_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.listen_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.listen_socket.bind((self.ip, self.port))
+            if self.timeout:
+                self.listen_socket.settimeout(self.timeout)
             try:
                 self.listen_socket.setsockopt(socket.SOL_IP, socket.IP_ADD_MEMBERSHIP, socket.inet_aton(self.ip) + socket.inet_aton(self.interface))
             except:
@@ -75,16 +78,21 @@ class CUWBCollector:
 
     def __iter__(self):
         self.start()
+        return self
 
+    def __next__(self):
         while True:
             try:
                 data, address = self.listen_socket.recvfrom(65535)  # 2^16 is the maximum size of a CDP packet
+
                 socket_read_time = datetime.utcnow()
                 cdp_packet = cdp.CDP(data)
             except ValueError:
                 logging.error("Failed parsing socket content")
-                yield None
-                continue
+                return None
+            except socket.timeout:
+                logging.error("Socket timed out")
+                raise StopIteration()
 
             logging.info("Packet received at: {}".format(socket_read_time))
 
@@ -97,11 +105,11 @@ class CUWBCollector:
                 'scale',
             ]
             for item in self.extract_data_items(socket_read_time, ACCELEROMETER_V2, 'accelerometer', cdp_packet, fields, debug=DEBUG):
-                yield item
+                return item
             for item in self.extract_data_items(socket_read_time, GYROSCOPE_V2, 'gyroscope', cdp_packet, fields, debug=DEBUG):
-                yield item
+                return item
             for item in self.extract_data_items(socket_read_time, MAGNETOMETER_V2, 'magnetometer', cdp_packet, fields, debug=DEBUG):
-                yield item
+                return item
 
             fields = [
                 'serial_number',
@@ -113,16 +121,16 @@ class CUWBCollector:
                 'quaternion_type',
             ]
             for item in self.extract_data_items(socket_read_time, QUATERNION_V2, 'quaternion', cdp_packet, fields, debug=DEBUG):
-                yield item
+                return item
 
             for item in self.extract_data_items(socket_read_time, PRESSURE_V2, 'pressure', cdp_packet, ['serial_number', 'network_time', 'pressure', 'scale'], debug=DEBUG):
-                yield item
+                return item
 
             for item in self.extract_data_items(socket_read_time, TEMPERATURE_V2, 'temperature', cdp_packet, ['serial_number', 'network_time', 'temperature', 'scale'], debug=DEBUG):
-                yield item
+                return item
 
             for item in self.extract_data_items(socket_read_time, DEVICE_NAMES, 'names', cdp_packet, ['serial_number', 'name'], debug=DEBUG):
-                yield item
+                return item
 
             fields = [
                 'serial_number',
@@ -136,7 +144,7 @@ class CUWBCollector:
                 'smoothing',
             ]
             for item in self.extract_data_items(socket_read_time, POSITION_V3, 'position', cdp_packet, fields, debug=DEBUG):
-                yield item
+                return item
 
             fields = [
                 'serial_number',
@@ -148,7 +156,7 @@ class CUWBCollector:
                 'processor_usage',
             ]
             for item in self.extract_data_items(socket_read_time, HARDWARE_STATUS_V2, 'status', cdp_packet, fields, debug=DEBUG):
-                yield item
+                return item
 
             fields = [
                 'serial_number',
@@ -164,7 +172,7 @@ class CUWBCollector:
                 'bad_paired_anchors',
             ]
             for item in self.extract_data_items(socket_read_time, ANCHOR_HEALTH_V5, 'anchor_health', cdp_packet, fields, debug=DEBUG):
-                yield item
+                return item
 
             fields = [
                 'serial_number',
@@ -177,8 +185,14 @@ class CUWBCollector:
                 'synchronization_state'
             ]
             for item in self.extract_data_items(socket_read_time, DEVICE_ACTIVITY_STATE, 'device_activity_state', cdp_packet, fields, debug=DEBUG):
-                yield item
+                return item
 
+    def __aiter__(self):
+        self.start()
+        return self
+
+    async def __anext__(self):
+        return self.__next__()
 
 def network_time_to_seconds(ut):
     return float(ut) * 15.65 / (1e12)
