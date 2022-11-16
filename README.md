@@ -26,15 +26,15 @@ Leverages fluentd to move Ciholas sensor data to S3
 
 Before deploying the service, update the Ciholas network config as follows:
 
-|        | IP                | Port   | Interface |
-|--------|-------------------|--------|-----------|
-| Config | 239.255.76.67     | 7671   | 0.0.0.0   |
-| Input  | 239.255.76.67     | 7667   | 0.0.0.0   |
-| Output | 0.0.0.0           | 32222  | 0.0.0.0   |
+|        | IP                | Port   | Interface           |
+|--------|-------------------|--------|---------------------|
+| Config | 239.255.76.67     | 7671   | <<CONTROL PC IP>>   |
+| Input  | 239.255.76.67     | 7667   | <<CONTROL PC IP>>   |
+| Output | 0.0.0.0           | 32222  | <<CONTROL PC IP>>   |
 
 PS: In order to resolve an issue with the anchors disconnecting and not reconnecting, you may need to set the interface IPs of the Config and Input rows to the ethernet device's IP (Use `ifconfig`) 
 
-### Build and push service
+### Build and push cuwb service
 
 ```
 make build-cuwb-stream
@@ -59,6 +59,22 @@ TIMEZONE=US/Pacific envsubst < ./k8s/fluentd-s3-scheduler.yml | kubectl apply -f
 
 kubectl apply -f ./k8s/cuwb-service.yml 
 ```
+
+### Test CUWB Steaming logger
+
+See the [cdp_player README](./cuwb_stream/README.md#Test)
+
+## CDP Player
+
+You can use the Makefile to build or run the cdp-player. You can also [work with cdp-player directly](./cdp_player/README.md).
+
+### Build
+
+`make build-cdp-player REPO_NAME=<<Ciholas PPA Repository Name>>`
+
+### Run 
+
+`make run-cdp-player REPO_NAME=<<Ciholas PPA Repository Name>>`
 
 ## Setup cluster with Docker Hub robot
 
