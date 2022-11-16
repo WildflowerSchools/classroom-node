@@ -1,6 +1,5 @@
 import datetime
 import logging
-logging.basicConfig(level=logging.DEBUG, format='%(levelname)-9s %(asctime)s [%(filename)-15s:%(funcName)-12s] %(message)s')
 from multiprocessing import Process, Queue
 import os
 import time
@@ -8,15 +7,26 @@ import time
 import yaml
 from minio import Minio
 from minio.error import MinioException
+from pythonjsonlogger import jsonlogger
+
+logger = logging.getLogger()
+
+
+logger.setLevel(level=logging.DEBUG)
+logHandler = logging.StreamHandler()
+formatter = jsonlogger.JsonFormatter('%(levelname)s %(asctime)s %(filename)s %(funcName)s %(message)s')
+logHandler.setFormatter(formatter)
+logger.addHandler(logHandler)
+
+
+
+
 try:
     import picamera
 except ImportError:
-    logging.warning("picamera not available")
+    logger.warning("picamera not available")
 
 import ffmpeg
-
-
-logging.basicConfig(level=logging.DEBUG, format='%(levelname)-9s %(asctime)s [%(filename)-15s:%(funcName)-12s] %(message)s')
 
 
 with open('/boot/wildflower-config.yml', 'r', encoding="utf-8") as fp:
@@ -43,7 +53,8 @@ def next_timeslot(now):
 
 
 def capture_loop():
-    logging.info("starting capture")
+    logger.setLevel(level=logging.DEBUG)
+    logger.info("starting capture")
     try:
         with picamera.PiCamera() as camera:
             camera.resolution = CAMERA_RES
@@ -51,7 +62,7 @@ def capture_loop():
             camera.iso = CAMERA_ISO_SETTING
             camera.exposure_mode = CAMERA_EXPOSURE_MODE
             camera.shutter_speed = CAMERA_SHUTTER_SPEED
-            logging.info("period is %s", PERIOD)
+            logger.info("period is %s", PERIOD)
             camera.hflip = CAMERA_H_FLIP == "yes"
             camera.vflip = CAMERA_V_FLIP == "yes"
 
@@ -62,9 +73,8 @@ def capture_loop():
             if sleep_time < 2:  # Ensure camera has enough time to adjust
                 sleep_time += PERIOD
                 timeslot += PERIOD
-            logging.info("going to sleep for a bit %s", sleep_time)
+            logger.info("going to sleep for a bit %s", sleep_time)
             time.sleep(sleep_time)
-
             # camera.start_preview()
             video_start_time = datetime.datetime.fromtimestamp(timeslot)
             name = f'/out/video-{video_start_time:%Y_%m_%d_%H_%M-%S}.h264'
@@ -74,13 +84,13 @@ def capture_loop():
                 timeslot += PERIOD
                 video_start_time = datetime.datetime.fromtimestamp(timeslot)
                 name = f'/out/video-{video_start_time:%Y_%m_%d_%H_%M-%S}.h264'
+                logger.info("recording started", extra={"metric_tag": "video_start", "video_start_time": f"{video_start_time:%Y_%m_%d_%H_%M-%S}"})
                 camera.split_recording(name, format='h264', intra_period=INTRA_PERIOD, bitrate=BITRATE)
                 delay = timeslot + PERIOD - time.time()
-                logging.info("waiting %s", delay)
+                logger.info("waiting %s", delay)
                 camera.wait_recording(delay)
     except Exception as e:
-        logging.info(e)
-
+        logger.error(e)
 
 
 def get_next_file():
@@ -114,7 +124,7 @@ def minio_client():
 
 
 def upload_loop():
-    logging.info(os.environ["MINIO_URL"])
+    logger.info(os.environ["MINIO_URL"])
     minioClient = minio_client()
     try:
         minioClient.make_bucket(BUCKET, location="us-east-1")
@@ -126,26 +136,31 @@ def upload_loop():
             try:
                 start = datetime.datetime.now()
                 mp4_name = f"{name[:-5]}.mp4"
-                (
-                    ffmpeg
-                    .input(name, format="h264", r=str(CAMERA_FRAMERATE))
-                    .output(mp4_name, **{"format": "mp4", "c:v": "copy", "r": str(CAMERA_FRAMERATE)})
-                    .run(quiet=False, overwrite_output=True)
-                )
-                logging.info('repackage took %s', (datetime.datetime.now() - start).total_seconds())
+                try:
+                    (
+                        ffmpeg
+                        .input(name, format="h264", r=str(CAMERA_FRAMERATE))
+                        .output(mp4_name, **{"format": "mp4", "c:v": "copy", "r": str(CAMERA_FRAMERATE)})
+                        .run(quiet=True, overwrite_output=True)
+                    )
+                except Exception as ffmpeg_err:
+                    logger.exception(ffmpeg_err)
+                    logger.exception("ffmpeg_err %s", name)
+                logger.info('repackage took %s', (datetime.datetime.now() - start).total_seconds())
                 time.sleep(1)
                 ts = name[11:-5]
                 obj_name = (f'{DEVICE_ID}/{ts}.mp4').replace("_", "/")
-                logging.info("putting %s on minio", obj_name)
+                logger.info("putting %s on minio", obj_name)
                 minioClient.fput_object(BUCKET, obj_name, mp4_name, content_type='video/mp4', metadata={
                                         "source": DEVICE_ID,
                                         "ts": ts,
                                         "duration": f"{PERIOD}s",
                                         })
+                logger.info("upload successful", extra={"metric_tag": "video_moved", "video_start_time": ts})
                 os.remove(name)
                 os.remove(mp4_name)
-            except MinioException as err:
-                logging.info(err)
-                logging.info("failed to process %s", name)
+            except Exception as err:
+                logger.exception(err)
+                logger.exception("failed to process %s", name)
         else:
             time.sleep(2)
