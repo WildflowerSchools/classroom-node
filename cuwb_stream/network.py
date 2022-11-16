@@ -13,12 +13,16 @@ def get_networks():
 
 
 def start_network(name):
-    res = requests.post("/".join(([BASE_URL, "cuwbnets", name])), json={"action": "start"})
+    res = requests.post(
+        "/".join(([BASE_URL, "cuwbnets", name])), json={"action": "start"}
+    )
     return res.json().get("status") == "success"
 
 
 def stop_network(name):
-    res = requests.post("/".join(([BASE_URL, "cuwbnets", name])), json={"action": "stop"})
+    res = requests.post(
+        "/".join(([BASE_URL, "cuwbnets", name])), json={"action": "stop"}
+    )
     return res.json().get("status") == "success"
 
 
@@ -31,13 +35,11 @@ def is_network_running(name):
 
 
 class FailedToStart(Exception):
-
     def __init__(self, name):
         super().__init__(f"Failed to start `{name}` cuwbnet")
 
 
 class FailedToStop(Exception):
-
     def __init__(self, name):
         super().__init__(f"Failed to stop `{name}` cuwbnet")
 
