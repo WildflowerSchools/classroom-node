@@ -2,3 +2,4 @@ picamera==1.13
 ffmpeg-python==0.2.0
 minio==7.1.12
 pyyaml>=6.0
+python-json-logger>=2.0.4
