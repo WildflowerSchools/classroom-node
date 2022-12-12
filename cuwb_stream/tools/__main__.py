@@ -1,5 +1,6 @@
 import os
 import socket
+import uuid
 
 import click
 
@@ -72,7 +73,7 @@ def collect(
         for bit in collector:
             if bit:
                 database_connection.write_datapoint_object_time_series(
-                    object_id=bit.get("serial_number"), data=bit
+                    object_id=bit.get("serial_number", uuid.uuid4().hex), data=bit
                 )
 
 

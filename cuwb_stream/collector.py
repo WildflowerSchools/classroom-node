@@ -18,6 +18,7 @@ HARDWARE_STATUS_V2 = 0x0138
 ANCHOR_HEALTH_V5 = 0x014A
 NETWORK_TIME_MAPPING_V1 = 0x015A
 DEVICE_ACTIVITY_STATE = 0x0137
+DISTANCE_V2 = 0x0127
 
 MAX_TIMESTAMP_REFRESH_DELAY = (
     60  # seconds before we lose confidence in our interpolated real time value
@@ -86,7 +87,7 @@ class CUWBCollector:
             for field in fields:
                 if hasattr(item, field):
                     data[field] = getattr(item, field)
-                    if field == "serial_number":
+                    if field == "serial_number" or field == "serial_number_1" or field == "serial_number_2":
                         data[field] = str(data[field])
                     if field == "bad_paired_anchors":
                         data[field] = ",".join([str(di) for di in data[field]])
@@ -275,6 +276,25 @@ class CUWBCollector:
                 socket_read_time,
                 DEVICE_ACTIVITY_STATE,
                 "device_activity_state",
+                cdp_packet,
+                fields,
+                debug=DEBUG,
+            ):
+                yield item
+
+            fields = [
+                "serial_number_1",
+                "serial_number_2",
+                "interface_id_1",
+                "interface_id_2",
+                "rx_timestamp",
+                "distance",
+                "quality",
+            ]
+            for item in self.extract_data_items(
+                socket_read_time,
+                DISTANCE_V2,
+                "distance",
                 cdp_packet,
                 fields,
                 debug=DEBUG,
