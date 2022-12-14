@@ -1,20 +1,62 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fluentd-s3
+  namespace: monitoring
+  labels:
+    app: fluentd-s3
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: fluentd-s3
+  labels:
+    app: fluentd-s3
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: fluentd-s3
+roleRef:
+  kind: ClusterRole
+  name: fluentd-s3
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: fluentd-s3
+    namespace: monitoring
+
+---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: fluentd-s3
-  namespace: kube-logging
+  namespace: monitoring
   labels:
-    app: fluentd
+    app: fluentd-s3
 spec:
   selector:
     matchLabels:
-      app: fluentd
+      app: fluentd-s3
   template:
     metadata:
       labels:
-        app: fluentd
+        app: fluentd-s3
     spec:
-      serviceAccountName: fluentd
+      serviceAccountName: fluentd-s3
       tolerations:
         - key: node-role.kubernetes.io/master
           effect: NoSchedule

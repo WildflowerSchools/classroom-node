@@ -85,11 +85,11 @@ data:
     actions:
       scale-up-log-capture:
         type: patch
-        resource: ["kube-logging", "daemon-set", "fluentd-s3"]
+        resource: ["monitoring", "daemon-set", "fluentd-s3"]
         patch:
         - { "op": "replace", "path": "/spec/template/spec/nodeSelector/wf-type", "value": "control" }
       scale-down-log-capture:
         type: patch
-        resource: ["kube-logging", "daemon-set", "fluentd-s3"]
+        resource: ["monitoring", "daemon-set", "fluentd-s3"]
         patch:
         - { "op": "replace", "path": "/spec/template/spec/nodeSelector/wf-type", "value": "non-existent" }

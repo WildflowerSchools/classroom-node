@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  namespace: kube-logging
+  namespace: monitoring
   name: kube-logging-fluentd-s3-config
   labels:
     app: fluentd
@@ -12,6 +12,7 @@ data:
     @include "#{ENV['FLUENTD_PROMETHEUS_CONF'] || 'prometheus'}.conf"
     @include kubernetes.conf
     @include conf.d/*.conf
+    
 
     <match **>
       @type s3

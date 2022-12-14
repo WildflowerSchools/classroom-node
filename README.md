@@ -48,14 +48,15 @@ brew install gettext
 brew link --force gettext 
 
 # Create a config and secrets file with S3 and AWS ENV keys
-kubectl apply -f ./k8s/kube-logging.yml
 kubectl apply -f ./private/aws-s3-write-auth-config.yml
 kubectl apply -f ./private/aws-s3-write-auth-secret.yml
 kubectl apply -f ./k8s/fluentd.yml
 kubectl apply -f ./k8s/fluentd-s3-config.yml
 kubectl apply -f ./k8s/fluentd-s3.yml
+kubectl apply -f ./k8s/fluentd-general-config.yml
+kubectl apply -f ./k8s/fluentd-general-monitoring.yml
 
-TIMEZONE=US/Pacific envsubst < ./k8s/fluentd-s3-scheduler.yml | kubectl apply -f -
+TIMEZONE=\"US/Pacific\" envsubst < ./k8s/fluentd-s3-scheduler.yml | kubectl apply -f -
 
 kubectl apply -f ./k8s/cuwb-service.yml 
 ```
