@@ -1,13 +1,16 @@
 import datetime
 import logging
+from logging.handlers import RotatingFileHandler
 from multiprocessing import Process, Queue
 import os
+from pathlib import Path
 import time
 
 import yaml
 from minio import Minio
 from minio.error import MinioException
 from pythonjsonlogger import jsonlogger
+from influx_line_protocol import Metric
 
 logger = logging.getLogger()
 
@@ -17,8 +20,6 @@ logHandler = logging.StreamHandler()
 formatter = jsonlogger.JsonFormatter('%(levelname)s %(asctime)s %(filename)s %(funcName)s %(message)s')
 logHandler.setFormatter(formatter)
 logger.addHandler(logHandler)
-
-
 
 
 try:
@@ -46,6 +47,29 @@ CAMERA_EXPOSURE_MODE = os.environ.get("CAMERA_EXPOSURE_MODE", 'sports')
 CAMERA_SHUTTER_SPEED = int(os.environ.get("CAMERA_SHUTTER_SPEED", 0))
 CAMERA_H_FLIP = os.environ.get("CAMERA_H_FLIP", 0)
 CAMERA_V_FLIP = os.environ.get("CAMERA_V_FLIP", 0)
+METRICS_LOG_DIR = Path(os.environ.get("METRICS_LOG", "/var/log/wf_metrics"))
+
+def get_logger(name):
+    metlogger = logging.getLogger("wf_metrics")
+    if not METRICS_LOG_DIR.exists():
+        METRICS_LOG_DIR.mkdir()
+    path = METRICS_LOG_DIR / f"{name}.log"
+    metlogger.setLevel(logging.INFO)
+    handy = RotatingFileHandler(path, maxBytes=20000000, backupCount=5)
+    handy.setFormatter(logging.Formatter())
+    metlogger.addHandler(handy)
+    return metlogger
+
+def emit(metlog, name, values, tags=None):
+    metric = Metric(name)
+    metric.with_timestamp(time.time() * 1000000000)
+    if tags is None:
+        tags = {"tag": "team"}
+    for tag in tags:
+        metric.add_tag(tag, tags[tag])
+    for value in values:
+        metric.add_value(value, values[value])
+    metlog.info(metric)
 
 
 def next_timeslot(now):
@@ -75,16 +99,18 @@ def capture_loop():
                 timeslot += PERIOD
             logger.info("going to sleep for a bit %s", sleep_time)
             time.sleep(sleep_time)
-            # camera.start_preview()
+            metlog = get_logger("capture_loop")
             video_start_time = datetime.datetime.fromtimestamp(timeslot)
             name = f'/out/video-{video_start_time:%Y_%m_%d_%H_%M-%S}.h264'
             camera.start_recording(name, format='h264', intra_period=INTRA_PERIOD, bitrate=BITRATE)
+            emit(metlog, "camera_capture", {"video_start": 1, "origin": 1, "split": 0})
             camera.wait_recording(PERIOD - 0.001)
             while True:
                 timeslot += PERIOD
                 video_start_time = datetime.datetime.fromtimestamp(timeslot)
                 name = f'/out/video-{video_start_time:%Y_%m_%d_%H_%M-%S}.h264'
                 logger.info("recording started", extra={"metric_tag": "video_start", "video_start_time": f"{video_start_time:%Y_%m_%d_%H_%M-%S}"})
+                emit(metlog, "camera_capture", {"video_start": 1, "origin": 0, "split": 1})
                 camera.split_recording(name, format='h264', intra_period=INTRA_PERIOD, bitrate=BITRATE)
                 delay = timeslot + PERIOD - time.time()
                 logger.info("waiting %s", delay)
@@ -130,6 +156,7 @@ def upload_loop():
         minioClient.make_bucket(BUCKET, location="us-east-1")
     except MinioException:
         pass
+    metlog = get_logger("upload_loop")
     while True:
         name = get_next_file()
         if name:
@@ -146,7 +173,9 @@ def upload_loop():
                 except Exception as ffmpeg_err:
                     logger.exception(ffmpeg_err)
                     logger.exception("ffmpeg_err %s", name)
-                logger.info('repackage took %s', (datetime.datetime.now() - start).total_seconds())
+                    emit(metlog, "ffmpeg_err", {"ffmpeg_err": 1})
+                dur = (datetime.datetime.now() - start).total_seconds()
+                logger.info('repackage took %s', dur)
                 time.sleep(1)
                 ts = name[11:-5]
                 obj_name = (f'{DEVICE_ID}/{ts}.mp4').replace("_", "/")
@@ -156,11 +185,20 @@ def upload_loop():
                                         "ts": ts,
                                         "duration": f"{PERIOD}s",
                                         })
+                moved = 1
                 logger.info("upload successful", extra={"metric_tag": "video_moved", "video_start_time": ts})
-                os.remove(name)
-                os.remove(mp4_name)
+                try:
+                    os.remove(name)
+                except FileNotFoundError:
+                    pass  # file disappeared?
+                try:
+                    os.remove(mp4_name)
+                except FileNotFoundError:
+                    pass  # file disappeared?
             except Exception as err:
+                moved = 0
                 logger.exception(err)
                 logger.exception("failed to process %s", name)
+            emit(metlog, "camera_move", {"ffmpeg_time_seconds": dur, "moved_to_control": moved})
         else:
             time.sleep(2)
