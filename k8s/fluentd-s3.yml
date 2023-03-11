@@ -73,7 +73,7 @@ spec:
             - name: S3_TIMEKEY
               value: "600" # Upload logs every 10 minutes
             - name: FLUENTD_CONTAINER_TAIL_PATH
-              value: '/var/log/containers/cuwb-udp-listener*.log' # Container logs take on the format <<POD_NAME>>_<<NAMESPACE>>_<<CONTAINER_NAME>>_<<ID>>
+              value: '/var/log/containers/cuwb-listener*.log' # Container logs take on the format <<POD_NAME>>_<<NAMESPACE>>_<<CONTAINER_NAME>>_<<ID>>
           envFrom:
             - configMapRef:
                 name: kube-logging-aws-s3-write-auth-config

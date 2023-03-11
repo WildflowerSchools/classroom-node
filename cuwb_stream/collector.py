@@ -45,6 +45,7 @@ class CUWBCollector:
         self.port = port
         if self.port is None:
             self.port = os.getenv("CUWB_SOCKET_PORT", "7667")
+        self.port = int(self.port)
 
         self.route_ip = route_ip
         if self.route_ip is None:

@@ -6,10 +6,10 @@ class UWBConnectionSnoop:
     def write_uwb_network_message(self, object_id, data, msg_type):
         value_dict = {
             "object_id": object_id,
-            "timestamp": datetime.utcnow().isoformat(),
-            "data": data,
-            "type": msg_type
         }
+        value_dict.update(data)
+        value_dict["timestamp"] = datetime.utcnow().isoformat()
+        value_dict["type"] = msg_type
         print(json.dumps(value_dict))
         return value_dict
 

@@ -49,12 +49,14 @@ def collect(
         devices = uwb_network.get_devices(network_name=network_name)
         settings = uwb_network.get_settings(network_name=network_name)
 
-        database_connection.write_uwb_network_message(
-            object_id=uuid.uuid4().hex, data=devices, msg_type="network_devices"
-        )
-        database_connection.write_uwb_network_message(
-            object_id=uuid.uuid4().hex, data=settings, msg_type="network_settings"
-        )
+        for device_data in devices:
+            database_connection.write_uwb_network_message(
+                object_id=uuid.uuid4().hex, data={'device_data': device_data}, msg_type="network_devices"
+            )
+        for setting_data in settings:
+            database_connection.write_uwb_network_message(
+                object_id=uuid.uuid4().hex, data={'setting_data': setting_data}, msg_type="network_settings"
+            )
 
     capture_network_details()
 
