@@ -38,7 +38,7 @@ and send it to multiple ports.
 1) Stop the CUWB Manager
 2) Update the Manager's Output Port to 7673
 3) Start the Manager
-4) Start samplicate: `samplicate -d 1 -p 7673 0.0.0.0/7675 0.0.0.0/32222`
+4) Start samplicate: `samplicate -d 1 -p 7673 0.0.0.0/7675 0.0.0.0/32222 1> /dev/null &`
 5) Start the cdp-logger:
 
     ```

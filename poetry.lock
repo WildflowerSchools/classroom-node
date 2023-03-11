@@ -279,6 +279,18 @@ files = [
 ]
 
 [[package]]
+name = "influx-line-protocol"
+version = "0.1.5"
+description = "Implementation of influxdata line protocol format in python"
+category = "dev"
+optional = false
+python-versions = "*"
+files = [
+    {file = "influx-line-protocol-0.1.5.tar.gz", hash = "sha256:73954c9a0e09915b4a7e813cda425aec15f5deaf9d1d0e24a466f7067d207980"},
+    {file = "influx_line_protocol-0.1.5-py3-none-any.whl", hash = "sha256:69d7dcd26e70088d6330700d910d8eb303fa36351c5bfa35519fe99238831880"},
+]
+
+[[package]]
 name = "isort"
 version = "5.12.0"
 description = "A Python utility / library to sort Python imports."
@@ -784,4 +796,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "8e41f0ef3f41074e7498ed59da6f23ea63f492c85cad43d6e23011e530799118"
+content-hash = "3c1e6d51284842a740869335eb1a482c52c3d5de9b111a1a936042247a92e108"
