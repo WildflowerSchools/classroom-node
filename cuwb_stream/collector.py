@@ -28,11 +28,28 @@ MAX_TIMESTAMP_REFRESH_DELAY = (
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
 
 
+def get_local_ip(routable_ip="8.8.8.8"):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect((routable_ip, 80))
+    ip = s.getsockname()[0]
+    s.close()
+    return ip
+
+
 class CUWBCollector:
-    def __init__(self, ip, port, interface, timeout=None):
+    def __init__(self, ip, port, route_ip, timeout=None):
         self.ip = ip
+        if self.ip is None:
+            self.ip = os.getenv("CUWB_SOCKET_IP", "0.0.0.0")
+
         self.port = port
-        self.interface = interface
+        if self.port is None:
+            self.port = os.getenv("CUWB_SOCKET_PORT", "7667")
+
+        self.route_ip = route_ip
+        if self.route_ip is None:
+            self.route_ip = get_local_ip(os.getenv("CUWB_ROUTABLE_IP", "8.8.8.8"))
+
         self.listen_socket = None
         self.timeout = timeout
 
@@ -47,7 +64,7 @@ class CUWBCollector:
                 self.listen_socket.setsockopt(
                     socket.SOL_IP,
                     socket.IP_ADD_MEMBERSHIP,
-                    socket.inet_aton(self.ip) + socket.inet_aton(self.interface),
+                    socket.inet_aton(self.ip) + socket.inet_aton(self.route_ip),
                 )
             except socket.error:
                 logging.warning(
@@ -87,7 +104,7 @@ class CUWBCollector:
             for field in fields:
                 if hasattr(item, field):
                     data[field] = getattr(item, field)
-                    if field == "serial_number" or field == "serial_number_1" or field == "serial_number_2":
+                    if field in ["serial_number", "serial_number_1", "serial_number_2"]:
                         data[field] = str(data[field])
                     if field == "bad_paired_anchors":
                         data[field] = ",".join([str(di) for di in data[field]])

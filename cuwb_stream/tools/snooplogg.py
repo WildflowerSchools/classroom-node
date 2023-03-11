@@ -1,8 +1,19 @@
+from datetime import datetime
 import json
 
 
-class DatabaseConnectionSnoop:
-    def write_datapoint_object_time_series(self, object_id, data):
+class UWBConnectionSnoop:
+    def write_uwb_network_message(self, object_id, data, msg_type):
+        value_dict = {
+            "object_id": object_id,
+            "timestamp": datetime.utcnow().isoformat(),
+            "data": data,
+            "type": msg_type
+        }
+        print(json.dumps(value_dict))
+        return value_dict
+
+    def write_uwb_socket_message(self, object_id, data):
         value_dict = {"object_id": object_id}
         value_dict.update(data)
         value_dict["timestamp"] = (
@@ -16,3 +27,4 @@ class DatabaseConnectionSnoop:
             else None
         )
         print(json.dumps(value_dict))
+        return value_dict

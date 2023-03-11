@@ -6,8 +6,7 @@ import socket
 import subprocess
 import time
 
-from cuwb_stream.collector import CUWBCollector
-from cuwb_stream.tools.__main__ import get_local_ip
+from cuwb_stream.collector import CUWBCollector, get_local_ip
 
 
 REPO_NAME = os.getenv("REPO_NAME")
@@ -19,7 +18,7 @@ cdp_socket_port = 7667
 def run_collector(message_list):
     try:
         with CUWBCollector(
-            ip=cdp_socket_ip, port=cdp_socket_port, interface=get_local_ip(), timeout=2
+            ip=cdp_socket_ip, port=cdp_socket_port, route_ip=get_local_ip(), timeout=2
         ) as collector:
             for msg in collector:
                 message_list.append(msg)
@@ -40,7 +39,7 @@ def test_collector():
         cwd=f"{test_dir}/..",
     )
     if return_code != 0:
-        raise Exception(
+        raise RuntimeError(
             "Unable to build cdp-player container, required to test UWB parsing logic"
         )
 
@@ -55,6 +54,7 @@ def test_collector():
     time.sleep(1)
 
     # Launch the cdp-player to stream data, the collector should capture this
+    # pylint: disable=consider-using-with
     subprocess.Popen(
         ["make run-cdp-player", f"REPO_NAME={REPO_NAME}"],
         shell=True,
@@ -79,6 +79,7 @@ def test_collector():
     assert len(group_messages["device_activity_state"]) == 66
     assert len(group_messages["names"]) == 30
 
+    # pylint: disable=consider-using-with
     subprocess.Popen(
         ["docker", "stop", "cdp-player"], shell=True, stdin=tty, stdout=tty, stderr=tty
     )
