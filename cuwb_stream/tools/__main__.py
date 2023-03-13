@@ -50,13 +50,18 @@ def collect(
         settings = uwb_network.get_settings(network_name=network_name)
 
         for device_data in devices:
+            device_firmware_versions_list = device_data.get('firmware_versions', [])
+            device_firmware_version_dict = next(filter(lambda fv: fv.get('image_type', '') == 'firmware', device_firmware_versions_list), {})
+            device_data['firmware_version'] = device_firmware_version_dict.get('version_string', None)
+            device_data['firmware_sha'] = device_firmware_version_dict.get('sha', None)
+
             database_connection.write_uwb_network_message(
-                object_id=uuid.uuid4().hex, data={'device_data': device_data}, msg_type="network_devices"
+                object_id=device_data['serial_number'], data={'device_data': device_data}, msg_type="network_devices"
             )
-        for setting_data in settings:
-            database_connection.write_uwb_network_message(
-                object_id=uuid.uuid4().hex, data={'setting_data': setting_data}, msg_type="network_settings"
-            )
+
+        database_connection.write_uwb_network_message(
+            object_id=uuid.uuid4().hex, data={'setting_data': settings}, msg_type="network_settings"
+        )
 
     capture_network_details()
 
