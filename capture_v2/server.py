@@ -1,8 +1,8 @@
 from functools import partial
+from http import server
 import io
 import logging
 import socketserver
-from http import server
 import threading
 
 from .log import logger
