@@ -94,14 +94,6 @@ class CameraController:
 
         return selected_encoder_id, selected_encoder_wrapper
 
-    # def stop_encoder(self, encoder_id: str = None, encoder: Encoder = None):
-    #     selected_encoder_id, selected_encoder_wrapper = self.get_wrapped_encoder(encoder_id=encoder_id, encoder=encoder)
-    #     if selected_encoder_id is None or selected_encoder_wrapper is None:
-    #         return
-
-    #     if selected_encoder_wrapper.encoder.running():
-    #         selected_encoder_wrapper.encoder.stop()
-
     def remove_encoder(self, encoder_id: str = None, encoder: Encoder = None):
         selected_encoder_id, selected_encoder_wrapper = self.get_wrapped_encoder(
             encoder_id=encoder_id, encoder=encoder
