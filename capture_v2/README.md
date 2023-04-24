@@ -37,6 +37,6 @@ python -m capture_v2
 
 4. Verify
 
-Navigate to `http://<<RASPERBERRY PI IP ADDRESS>>:8000/stream.mjpg` to see a live MMJPEG stream of the camera
+Navigate to `http://<<RASPERBERRY PI IP ADDRESS>>:8000/stream.mjpg` to see a live MJPEG stream of the camera
 
 By default, 10 second camera snippets in mp4 format will be written to `./output`
