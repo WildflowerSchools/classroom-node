@@ -38,42 +38,44 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
         super().__init__(*args, **kwargs)
 
     def do_GET(self):
-        if self.path == '/':
+        if self.path == "/":
             self.send_response(301)
-            self.send_header('Location', '/index.html')
+            self.send_header("Location", "/index.html")
             self.end_headers()
-        elif self.path == '/index.html':
-            content = PAGE.encode('utf-8')
+        elif self.path == "/index.html":
+            content = PAGE.encode("utf-8")
             self.send_response(200)
-            self.send_header('Content-Type', 'text/html')
-            self.send_header('Content-Length', len(content))
+            self.send_header("Content-Type", "text/html")
+            self.send_header("Content-Length", len(content))
             self.end_headers()
             self.wfile.write(content)
-        elif self.path == '/stream.mjpg':
+        elif self.path == "/stream.mjpg":
             self.send_response(200)
-            self.send_header('Age', 0)
-            self.send_header('Cache-Control', 'no-cache, private')
-            self.send_header('Pragma', 'no-cache')
-            self.send_header('Content-Type', 'multipart/x-mixed-replace; boundary=FRAME')
+            self.send_header("Age", 0)
+            self.send_header("Cache-Control", "no-cache, private")
+            self.send_header("Pragma", "no-cache")
+            self.send_header(
+                "Content-Type", "multipart/x-mixed-replace; boundary=FRAME"
+            )
             self.end_headers()
             try:
                 while True:
                     if self.streaming_output is None:
                         self.send_error(404)
-                    
+
                     with self.streaming_output.condition:
                         self.streaming_output.condition.wait()
                         frame = self.streaming_output.frame
-                    self.wfile.write(b'--FRAME\r\n')
-                    self.send_header('Content-Type', 'image/jpeg')
-                    self.send_header('Content-Length', len(frame))
+                    self.wfile.write(b"--FRAME\r\n")
+                    self.send_header("Content-Type", "image/jpeg")
+                    self.send_header("Content-Length", len(frame))
                     self.end_headers()
                     self.wfile.write(frame)
-                    self.wfile.write(b'\r\n')
+                    self.wfile.write(b"\r\n")
             except Exception as e:
                 logging.warning(
-                    'Removed streaming client %s: %s',
-                    self.client_address, str(e))
+                    "Removed streaming client %s: %s", self.client_address, str(e)
+                )
         else:
             self.send_error(404)
             self.end_headers()
@@ -93,24 +95,31 @@ class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
 
         streaming_handler_class = partial(StreamingHandler, self.streaming_output)
 
-        super().__init__(server_address=(self.host, self.port), RequestHandlerClass=streaming_handler_class, *args, **kwargs)
+        super().__init__(
+            server_address=(self.host, self.port),
+            RequestHandlerClass=streaming_handler_class,
+            *args,
+            **kwargs
+        )
 
     def _start_thread(self) -> None:
         while not self.stop_event.is_set():
             self.serve_forever()
-    
+
     def start(self, background: bool = False) -> None:
         logger.info("Starting http server...")
         if background:
-            self.server_thread = threading.Thread(target=self._start_server, daemon=True)
+            self.server_thread = threading.Thread(
+                target=self._start_server, daemon=True
+            )
             self.server_thread._start_thread()
         else:
             self.serve_forever()
         logger.info("Started http server")
-    
+
     def stop(self) -> None:
         self.stop_event.set()
         if self.server_thread is not None:
             self.server_thread.join()
-        
+
         self.stop_event.clear()

@@ -10,9 +10,9 @@ class Settings(BaseSettings):
 
     CAMERA_CAPTURE_FRAME_RATE: int = 30
 
-    SERVER_HOST: str = ''
+    SERVER_HOST: str = ""
     SERVER_PORT: int = 8000
 
     class Config:
-        env_file = '.env'
-        env_file_encoding = 'utf-8'
+        env_file = ".env"
+        env_file_encoding = "utf-8"

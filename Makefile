@@ -1,5 +1,7 @@
-.PHONY: build-capture lint-capture build-cuwb-stream build-scheduler build-cdp-player run-cdp-player test
+.PHONY: build-capture lint-capture format-capture-v2 build-cuwb-stream build-scheduler build-cdp-player run-cdp-player
 
+format-capture-v2:
+	black capture_v2
 
 lint-capture:
 	@pylint capture
