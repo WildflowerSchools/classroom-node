@@ -39,13 +39,13 @@ def main():
 
         camera_controller.add_encoder(
             encoder=mjpeg_main_res_encoder,
-            name="LoRes MJPEG Encoder - For Streaming HTTP Server",
-            stream_type="lores",
+            name="HiRes MJPEG Encoder - For Capture Loop",
+            stream_type="main",
         )
         camera_controller.add_encoder(
             encoder=mjpeg_lo_res_encoder,
-            name="HiRes MJPEG Encoder - For Capture Loop",
-            stream_type="main",
+            name="LoRes MJPEG Encoder - For Streaming HTTP Server",
+            stream_type="lores",
         )
         camera_controller.start()
 
