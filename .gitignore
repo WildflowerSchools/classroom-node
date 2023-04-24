@@ -123,3 +123,6 @@ cams/
 .DS_Store
 
 k8s/sucrets.txt
+
+# capture v2
+capture_v2/output/

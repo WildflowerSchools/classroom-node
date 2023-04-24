@@ -9,7 +9,6 @@ from picamera2.outputs import FileOutput, FfmpegOutput
 
 import pandas as pd
 
-from .flexible_ffmpeg_output import FlexibleFfmpegOutput
 from .log import logger
 
 
