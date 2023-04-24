@@ -1,15 +1,22 @@
-.PHONY: build-capture lint-capture build-cuwb-stream build-scheduler build-cdp-player run-cdp-player
+.PHONY: build-capture lint-capture build-cuwb-stream build-scheduler build-cdp-player run-cdp-player test
 
 
 lint-capture:
 	@pylint capture
 
 build-capture: lint-capture
-	# -sudo docker buildx rm multiarch
-	# sudo docker buildx create --name multiarch
-	sudo docker buildx use multiarch
-	sudo docker buildx build -t wildflowerschools/classroom-node-capture:v$(shell cat capture/VERSION) --platform linux/arm/v7 -f capture/Dockerfile --push .
-	# sudo docker buildx rm multiarch
+	-docker buildx rm multiarch
+	docker buildx create --name multiarch
+	docker buildx use multiarch
+	docker buildx build -t wildflowerschools/classroom-node-capture:v$(shell cat capture/VERSION) --platform linux/arm/v7 -f capture/Dockerfile --push .
+	docker buildx rm multiarch
+
+build-capture-pi4: lint-capture
+	-docker buildx rm multiarch
+	docker buildx create --name multiarch
+	docker buildx use multiarch
+	docker buildx build -t wildflowerschools/classroom-node-capture:v$(shell cat capture/VERSION)-pi4 --platform linux/arm64/v8 -f capture/pi4.dockerfile --push .
+	docker buildx rm multiarch
 
 lint-cuwb-stream:
 	@pylint cuwb_stream

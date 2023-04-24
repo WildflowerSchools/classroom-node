@@ -1,10 +1,10 @@
-FROM balenalib/raspberrypi3-python:3.9-buster
+FROM balenalib/raspberrypi4-64-python:3.9-buster
 
 RUN mkdir /app
 RUN mkdir /out
 
 RUN apt update
-RUN apt install ffmpeg rsyslog
+RUN apt install ffmpeg
 
 
 RUN set -ex \

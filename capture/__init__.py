@@ -27,7 +27,7 @@ try:
 except ImportError:
     logger.warning("picamera not available")
 
-import ffmpeg
+import ffmpeg  # pylint: disable=wrong-import-position
 
 
 with open('/boot/wildflower-config.yml', 'r', encoding="utf-8") as fp:
@@ -72,7 +72,8 @@ def emit(metlog, name, values, tags=None):
     metlog.info(metric)
 
 
-def next_timeslot(now):
+def next_timeslot():
+    now = time.time()
     return now + (PERIOD - (now % PERIOD))
 
 
@@ -97,12 +98,12 @@ def capture_loop():
             if sleep_time < 2:  # Ensure camera has enough time to adjust
                 sleep_time += PERIOD
                 timeslot += PERIOD
-            logger.info("going to sleep for a bit %s", sleep_time)
+            logger.info("going to sleep for %s seconds", sleep_time)
             time.sleep(sleep_time)
             metlog = get_logger("capture_loop")
             video_start_time = datetime.datetime.fromtimestamp(timeslot)
             name = f'/out/video-{video_start_time:%Y_%m_%d_%H_%M-%S}.h264'
-            camera.start_recording(name, format='h264', intra_period=INTRA_PERIOD, bitrate=BITRATE)
+            camera.start_recording(name, format='h264', intra_period=INTRA_PERIOD, bitrate=BITRATE) # Drift
             emit(metlog, "camera_capture", {"video_start": 1, "origin": 1, "split": 0})
             camera.wait_recording(PERIOD - 0.001)
             while True:
