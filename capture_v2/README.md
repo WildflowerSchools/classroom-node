@@ -2,7 +2,7 @@
 
 Raspberry PI capture using `picamera2` library. This is Python's newest camera library. It is is built on `libcamera`. This library must be run on Bullseye OS. 
 
-## Run through Docker
+## Run with Docker
 1. Install Docker on Host
 ```
 (cd /tmp && \
@@ -37,7 +37,7 @@ Navigate to `http://<<RASPERBERRY PI IP ADDRESS>>:8000/stream.mjpg` to see a liv
 By default, 10 second camera snippets in mp4 format will be written to `/data/capture_output`
 
 
-## Run Pi Host
+## Run on Pi Host
 
 1. Install mp4fpsmod
 ```
