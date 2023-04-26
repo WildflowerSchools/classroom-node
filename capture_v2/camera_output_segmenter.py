@@ -131,6 +131,17 @@ class CameraOutputSegmenter(FileOutput):
                                 keyframe=frame["keyframe"],
                                 timestamp=relative_pts * 1e9,
                             )
+                        # Warning! Frame manipulation devilry ahead!
+                        # We're adding a final frame with a PTS time that EXACTLY represents the specified video duration
+                        # We do this to manipulate the duration between the official final and the new "devil" final frame
+                        # Once ffmpeg creates our mp4, we will chop the devil frame and it will result in a video file that is EXACTLY the length we want
+                        final_pts_in_seconds = self.clip_duration * 1.0
+                        pts_file.write(f"{(final_pts_in_seconds * 1000):.3f}")
+                        output.outputframe(
+                            frame=df_fitted_frames.iloc[-1]["data"],
+                            keyframe=df_fitted_frames.iloc[-1]["keyframe"],
+                            timestamp=final_pts_in_seconds * 1e9,
+                        )
 
                     output.stop()
 
@@ -155,13 +166,18 @@ class CameraOutputSegmenter(FileOutput):
                     )
                     # Next step is to update the PTS timestamps. We use mp4fpsmod
                     cmds.append(
-                        f"mp4fpsmod -t {segment['pts_filepath']} {segment['mp4_filepath']}.tmp -o {segment['mp4_filepath']}"
+                        f"mp4fpsmod -t {segment['pts_filepath']} {segment['mp4_filepath']}.tmp -o {segment['mp4_filepath']}.mp4fpsmod.tmp"
                     )
+                    # Now chop the final "devil" frame
+                    cmds.append(
+                        f"ffmpeg -y -i {segment['mp4_filepath']}.mp4fpsmod.tmp -frames:v {self.clip_duration * self.frame_rate} -c:v copy {segment['mp4_filepath']}"
+                    )
+
                     # mkvmerge example - Note, I couldn't get mkvmerge to work with mp4s. I needed to convert it to an mkv which added an extra step
                     # cmds.append(f"mkvmerge -o {segment['mp4_filepath']} --timestamps 0:{segment['pts_filepath']} {segment['mp4_filepath']}.tmp")
                     # Finally cleanup, cleanup, everybody cleanup
                     cmds.append(
-                        f"rm -f {segment['pts_filepath']} {segment['mp4_filepath']}.tmp {segment['source_filepath']}"
+                        f"rm -f {segment['pts_filepath']} {segment['mp4_filepath']}.mp4fpsmod.tmp {segment['mp4_filepath']}.tmp {segment['source_filepath']}"
                     )
 
                     def popen_and_call(on_exit, popen_args):

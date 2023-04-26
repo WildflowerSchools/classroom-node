@@ -1,7 +1,12 @@
+from collections import deque
+import copy
 import random
 import string
 import threading
+import time
 from typing import Optional, Union
+
+# from queue import Queue
 
 from picamera2 import Picamera2
 from picamera2.configuration import CameraConfiguration
@@ -17,6 +22,9 @@ class _EncoderWrapper:
         self.name = name
         self.stream_type = stream_type
         self.thread = None
+        self.frame_request_queue = deque(
+            maxlen=500
+        )  # Each encoder can hold upto 500 frames
         self.stop_event: threading.Event = threading.Event()
 
 
@@ -32,6 +40,9 @@ class CameraController:
 
         self.encoders: dict[str, _EncoderWrapper] = {}
         self.capture_start_in_monotonic_seconds: int = None
+
+        self.capture_reading_thread: threading.Thread = None
+        self.stop_event: threading.Event = threading.Event()
 
     def random_id(self):
         return "".join(random.choices(string.ascii_lowercase + string.digits, k=10))
@@ -52,23 +63,49 @@ class CameraController:
     def stop(self):
         for id, e in self.encoders.items():
             self.stop_encoder(encoder_id=id)
+
+        self.stop_event.set()
+        self.capture_reading_thread.join()
+
+        logger.info(f"Stopped capture reading thread")
+
+        self.stop_event.clear()
+        self.capture_reading_thread = None
+
         self.stop_camera()
 
     def start(self):
         self.start_camera()
+
+        self.capture_reading_thread = threading.Thread(
+            target=self._start_capture_read,
+            daemon=True,
+        )
+        self.capture_reading_thread.start()
+
         for id, e in self.encoders.items():
             self.start_encoder(encoder_id=id)
+
+    def _start_capture_read(self):
+        while not self.stop_event.is_set():
+            request = self.picam2.capture_request()
+            for _, e in self.encoders.items():
+                e.frame_request_queue.appendleft(copy.copy(request))
+            request.release()
 
     def _start_encoding_thread(self, encoder_wrapper: _EncoderWrapper):
         encoder_wrapper.encoder.start()
         logger.info(f"Started encoding thread '{encoder_wrapper.name}'")
 
         while not encoder_wrapper.stop_event.is_set():
-            request = self.picam2.capture_request()
+            if len(encoder_wrapper.frame_request_queue) == 0:
+                time.sleep(0.05)
+                continue
+
+            request = encoder_wrapper.frame_request_queue.pop()
             encoder_wrapper.encoder.encode(
                 self.picam2.stream_map[encoder_wrapper.stream_type], request
             )
-            request.release()
 
     def add_encoder(self, encoder: Encoder, name="", stream_type="main") -> str:
         id = self.random_id()
