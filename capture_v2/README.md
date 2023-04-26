@@ -28,7 +28,7 @@ docker run -d \
     -p 8000:8000 \
     -v /run/udev:/run/udev:ro \
     -v /data/capture_output:/app/output \
-    wildflowerschools/classroom-node-capture-v2:v9
+    wildflowerschools/classroom-node-capture-v2:v10
 ```
 
 4. 
