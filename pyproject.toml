@@ -26,10 +26,10 @@ influx_line_protocol = ">=0.1.5"
 
 
 [tool.poetry.group.capture_v2.dependencies]
-picamera2 = {version = "^0.3.9", platform = "linux"}
+#picamera2 = {version = "^0.3.9", platform = "linux"}
 pandas = "^2.0.1"
 pydantic = "^1.10.7"
-python-prctl = {version = "^1.8.1", platform = "linux"}
+#python-prctl = {version = "^1.8.1", platform = "linux"}
 
 
 [tool.poetry.group.cuwb_stream.dependencies]
