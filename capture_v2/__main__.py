@@ -1,7 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 import sys
 
-from picamera2.configuration import CameraConfiguration
 from picamera2.encoders import MJPEGEncoder
 from picamera2.outputs import FileOutput
 
@@ -31,6 +30,7 @@ def main():
         custom_output = CameraOutputSegmenter(
             start_datetime=datetime.fromtimestamp(util.next_timeslot()),
             clip_duration=settings.VIDEO_CLIP_DURATION,
+            staging_dir=settings.VIDEO_CLIP_STAGING_DIR,
             output_dir=settings.VIDEO_CLIP_OUTPUT_DIR,
             frame_rate=settings.VIDEO_CLIP_FRAME_RATE,
         )

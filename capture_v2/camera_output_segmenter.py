@@ -20,7 +20,8 @@ class CameraOutputSegmenter(FileOutput):
         clip_duration: int = 10,  # in seconds
         frame_rate: int = 10,
         pts=None,
-        output_dir=".",
+        staging_dir="./staging",
+        output_dir="./output",
     ):
         super().__init__(pts=pts)
         self.segments = {}
@@ -32,6 +33,9 @@ class CameraOutputSegmenter(FileOutput):
         self.buffer_ready_condition = Condition()
         self.buffer_thread = Thread(target=self.process_buffer, daemon=True)
         self.buffer_thread.start()
+
+        Path(staging_dir).mkdir(parents=True, exist_ok=True)
+        self.staging_dir = staging_dir
 
         Path(output_dir).mkdir(parents=True, exist_ok=True)
         self.output_dir = output_dir
@@ -112,11 +116,11 @@ class CameraOutputSegmenter(FileOutput):
                     if df_fitted_frames is None:
                         continue
 
-                    output = FileOutput(file=segment["source_filepath"])
-                    # output = FlexibleFfmpegOutput(output_filepath=segment['mp4_filepath'])#segment['mp4_filepath'])
-                    output.start()
+                    video_output = FileOutput(file=segment["staging_source_filepath"])
+                    # output = FlexibleFfmpegOutput(output_filepath=segment['staging_mp4_filepath'])
+                    video_output.start()
 
-                    pts_file_path = Path(segment["pts_filepath"])
+                    pts_file_path = Path(segment["staging_pts_filepath"])
                     Path.unlink(pts_file_path, missing_ok=True)
                     with pts_file_path.open(mode="w+", encoding="utf-8") as pts_file:
                         for idx, frame in df_fitted_frames.iterrows():
@@ -128,58 +132,57 @@ class CameraOutputSegmenter(FileOutput):
                             else:
                                 pts_file.write(f"{(relative_pts * 1000):.3f}\n")
 
-                            output.outputframe(
+                            video_output.outputframe(
                                 frame=frame["data"],
                                 keyframe=frame["keyframe"],
                                 timestamp=relative_pts * 1e9,
                             )
                         # Warning! Frame manipulation devilry ahead!
-                        # We're adding a final frame with a PTS time that EXACTLY represents the specified video duration
-                        # We do this to manipulate the duration between the official final and the new "devil" final frame
+                        # We're adding a final frame with a PTS time that EXACTLY represents the desired video duration
+                        # We do this to manipulate the duration between the official final and the "devil" final frame
                         # Once ffmpeg creates our mp4, we will chop the devil frame and it will result in a video file that is EXACTLY the length we want
                         final_pts_in_seconds = self.clip_duration * 1.0
                         pts_file.write(f"{(final_pts_in_seconds * 1000):.3f}")
-                        output.outputframe(
+                        video_output.outputframe(
                             frame=df_fitted_frames.iloc[-1]["data"],
                             keyframe=df_fitted_frames.iloc[-1]["keyframe"],
                             timestamp=final_pts_in_seconds * 1e9,
                         )
 
-                    output.stop()
+                    video_output.stop()
 
                     logger.info(
                         f"Processing '{segment['name']}' - Video created! Total frames: {len(df_fitted_frames)}"
                     )
 
                     cmds = []
-                    if isinstance(output, FileOutput):
+                    if isinstance(video_output, FileOutput):
                         logger.info(
                             f"Processing '{segment['name']}' - Converting mjpeg to mp4..."
                         )
                         cmds.append(
-                            f"ffmpeg -f mjpeg -r {self.frame_rate} -loglevel warning -y -thread_queue_size 32 -i {segment['source_filepath']} -pix_fmt yuv420p -b:v 4M -c:v h264_v4l2m2m -f mp4 {segment['mp4_filepath']}"
+                            f"ffmpeg -f mjpeg -r {self.frame_rate} -loglevel warning -y -thread_queue_size 32 -i {segment['staging_source_filepath']} -pix_fmt yuv420p -b:v 4M -c:v h264_v4l2m2m -f mp4 {segment['staging_mp4_filepath']}"
                         )
 
+                    # Sleep because the mp4 file isn't quite ready for some reason...
+                    cmds.append(f"sleep 1")
                     cmds.append(
-                        f"sleep 1"
-                    )  # The mp4 file isn't quite ready it seems...
-                    cmds.append(
-                        f"mv {segment['mp4_filepath']} {segment['mp4_filepath']}.tmp"
+                        f"mv {segment['staging_mp4_filepath']} {segment['staging_mp4_filepath']}.tmp"
                     )
                     # Next step is to update the PTS timestamps. We use mp4fpsmod
                     cmds.append(
-                        f"mp4fpsmod -t {segment['pts_filepath']} {segment['mp4_filepath']}.tmp -o {segment['mp4_filepath']}.mp4fpsmod.tmp"
+                        f"mp4fpsmod -t {segment['staging_pts_filepath']} {segment['staging_mp4_filepath']}.tmp -o {segment['staging_mp4_filepath']}.mp4fpsmod.tmp"
                     )
-                    # Now chop the final "devil" frame
+                    # Now chop the final "devil" frame and output the mp4 to its final destination
                     cmds.append(
-                        f"ffmpeg -y -i {segment['mp4_filepath']}.mp4fpsmod.tmp -frames:v {self.clip_duration * self.frame_rate} -c:v copy {segment['mp4_filepath']}"
+                        f"ffmpeg -y -i {segment['staging_mp4_filepath']}.mp4fpsmod.tmp -frames:v {self.clip_duration * self.frame_rate} -c:v copy {segment['final_mp4_filepath']}"
                     )
 
                     # mkvmerge example - Note, I couldn't get mkvmerge to work with mp4s. I needed to convert it to an mkv which added an extra step
                     # cmds.append(f"mkvmerge -o {segment['mp4_filepath']} --timestamps 0:{segment['pts_filepath']} {segment['mp4_filepath']}.tmp")
                     # Finally cleanup, cleanup, everybody cleanup
                     cmds.append(
-                        f"rm -f {segment['pts_filepath']} {segment['mp4_filepath']}.mp4fpsmod.tmp {segment['mp4_filepath']}.tmp {segment['source_filepath']}"
+                        f"rm -f {segment['staging_pts_filepath']} {segment['staging_mp4_filepath']}.mp4fpsmod.tmp {segment['staging_mp4_filepath']}.tmp {segment['staging_source_filepath']}"
                     )
 
                     def popen_and_call(on_exit, popen_args):
@@ -202,7 +205,7 @@ class CameraOutputSegmenter(FileOutput):
                         return thread
 
                     thread_safe_callback = lambda msg: lambda: logger.info(msg)
-                    done_msg = f"Processing '{segment['name']}' - Done. Video file path: '{segment['mp4_filepath']}'"
+                    done_msg = f"Processing '{segment['name']}' - Done. Video file path: '{segment['final_mp4_filepath']}'"
                     popen_and_call(
                         thread_safe_callback(done_msg),
                         {"args": "; ".join(cmds.copy()), "shell": True},
@@ -213,12 +216,12 @@ class CameraOutputSegmenter(FileOutput):
     def current_filename(self, format: str = None):
         return f"video-{self.clip_start_datetime:%Y_%m_%d_%H_%M-%S}.{format}"
 
-    def current_filepath(self, format: str = None):
-        return f"{self.output_dir}/{self.current_filename(format=format)}"
+    def current_filepath(self, output_dir: str = ".", format: str = None):
+        return f"{output_dir}/{self.current_filename(format=format)}"
 
     def rotate(self):
-        current_filepath = self.current_filepath(format="")
-        segment = self.segments.get(current_filepath, None)
+        current_filename = self.current_filename(format="")
+        segment = self.segments.get(current_filename, None)
         if segment is not None:
             segment["ready"] = True
 
@@ -287,20 +290,29 @@ class CameraOutputSegmenter(FileOutput):
                     }
                 )
 
-            current_filepath = self.current_filepath(format="")
-            segment = self.segments.get(current_filepath, None)
+            current_filename_no_format = self.current_filename(format="")
+            segment = self.segments.get(current_filename_no_format, None)
             if segment is None:
                 segment = {
                     "name": self.current_filename(format="mp4"),
-                    "source_filepath": self.current_filepath(format="mjpeg"),
-                    "mp4_filepath": self.current_filepath(format="mp4"),
-                    "pts_filepath": self.current_filepath(format="pts"),
+                    "staging_source_filepath": self.current_filepath(
+                        output_dir=self.staging_dir, format="mjpeg"
+                    ),
+                    "staging_mp4_filepath": self.current_filepath(
+                        output_dir=self.staging_dir, format="mp4"
+                    ),
+                    "staging_pts_filepath": self.current_filepath(
+                        output_dir=self.staging_dir, format="pts"
+                    ),
+                    "final_mp4_filepath": self.current_filepath(
+                        output_dir=self.output_dir, format="mp4"
+                    ),
                     "start_datetime": self.clip_start_datetime,
                     "end_datetime": self.clip_end_datetime,
                     "frames": [],
                     "ready": False,
                 }
-                self.segments[current_filepath] = segment
+                self.segments[current_filename_no_format] = segment
 
         logger.debug(
             f"Frames handled: {self.frames_handled} | Frames captured: {self.frames_captured} | Frames in current clip: {self.current_clip_frame_count} | Include: {valid_time} | Current Time: {datetime.now().strftime('%M:%S.%f')[:-3]} | Frame Timestamp: {image_timestamp.strftime('%M:%S.%f')[:-3]} | Seconds: {frame_timestamp_in_seconds_from_init} | Keyframe: {keyframe} | Clip Start {self.clip_start_datetime} |  Clip End {self.clip_end_datetime} | Buffer size {len(self.frame_buffer)}"
