@@ -1,4 +1,4 @@
-FROM balenalib/raspberrypi3-64-python:3.9-bullseye as build-stage
+FROM balenalib/raspberrypi4-64-python:3.9-bullseye as build-stage
 
 RUN apt update -y && \
     apt remove python3-numpy -y && \
@@ -25,7 +25,7 @@ RUN printf "[global]\nextra-index-url=https://www.piwheels.org/simple\n" > /etc/
     pip install --no-cache-dir --upgrade pip poetry wheel
 
 
-FROM balenalib/raspberrypi3-64-python:3.9-bullseye
+FROM balenalib/raspberrypi4-64-python:3.9-bullseye
 
 ENV UDEV=on
 
@@ -60,7 +60,7 @@ COPY pyproject.toml poetry.lock ./
 RUN pip uninstall numpy -y && poetry config virtualenvs.create false && poetry install --no-cache --only capture_v2 --no-root --no-interaction --no-ansi
 
 COPY capture_v2 ./capture_v2
-COPY capture_v2/entry-point.sh entry-point.sh
+COPY capture_v2/scripts/entry-point.sh entry-point.sh
 
 ENTRYPOINT ["/app/entry-point.sh"]
 CMD ["python -m capture_v2"]

@@ -19,22 +19,27 @@ build-capture-v2:
 	docker buildx use multiarch
 	# Build for Raspberry Pi 4 64bit
 	docker buildx build --cache-from wildflowerschools/classroom-node-capture-v2:latest-raspberrypi4-64 \
-	    --cache-to "type=inline" -t wildflowerschools/classroom-node-capture-v2:latest-raspberrypi4-64 \
+	    --cache-to "type=inline" \
+	    -t wildflowerschools/classroom-node-capture-v2:latest-raspberrypi4-64 \
 	    -t wildflowerschools/classroom-node-capture-v2:v$(shell cat capture_v2/VERSION)-raspberrypi4-64 \
-	    --platform linux/arm64/v8 -f capture_v2/pi4-64.dockerfile \
+	    --platform linux/arm64/v8 \
+	    -f capture_v2/deployment/pi4-64.dockerfile \
 	    --push .
 	# Build for Raspberry Pi 3 32bit
 	docker buildx build --cache-from wildflowerschools/classroom-node-capture-v2:latest-raspberrypi3-32 \
-	    --cache-to "type=inline" -t wildflowerschools/classroom-node-capture-v2:latest-raspberrypi3-32 \
+	    --cache-to "type=inline" \
+	    -t wildflowerschools/classroom-node-capture-v2:latest-raspberrypi3-32 \
 	    -t wildflowerschools/classroom-node-capture-v2:v$(shell cat capture_v2/VERSION)-raspberrypi3-32 \
-	    --platform linux/arm/v7 -f capture_v2/pi3-32.dockerfile \
+	    --platform linux/arm/v7 \
+	    -f capture_v2/deployment/pi3-32.dockerfile \
 	    --push .
 	# Build for Raspberry Pi 3 64bit
 	docker buildx build --cache-from wildflowerschools/classroom-node-capture-v2:latest-raspberrypi3-64 \
 	    --cache-to "type=inline" \
 	    -t wildflowerschools/classroom-node-capture-v2:latest-raspberrypi3-64 \
 	    -t wildflowerschools/classroom-node-capture-v2:v$(shell cat capture_v2/VERSION)-raspberrypi3-64 \
-	    --platform linux/arm/v7 -f capture_v2/pi3-64.dockerfile \
+	    --platform linux/arm/v7 \
+	    -f capture_v2/deployment/pi3-64.dockerfile \
 	    --push .
 	docker buildx rm multiarch
 

@@ -60,7 +60,7 @@ COPY pyproject.toml poetry.lock ./
 RUN pip uninstall numpy -y && poetry config virtualenvs.create false && poetry install --no-cache --only capture_v2 --no-root --no-interaction --no-ansi
 
 COPY capture_v2 ./capture_v2
-COPY capture_v2/entry-point.sh entry-point.sh
+COPY capture_v2/scripts/entry-point.sh entry-point.sh
 
 ENTRYPOINT ["/app/entry-point.sh"]
 CMD ["python -m capture_v2"]
