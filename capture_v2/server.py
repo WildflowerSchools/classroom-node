@@ -110,7 +110,7 @@ class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
         logger.info("Starting http server...")
         if background:
             self.server_thread = threading.Thread(
-                target=self._start_server, daemon=True
+                target=self._start_server, daemon=False
             )
             self.server_thread._start_thread()
         else:

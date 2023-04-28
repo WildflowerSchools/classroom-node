@@ -79,7 +79,7 @@ class CameraController:
 
         self.capture_reading_thread = threading.Thread(
             target=self._start_capture_read,
-            daemon=True,
+            daemon=False,
         )
         self.capture_reading_thread.start()
 
@@ -193,7 +193,7 @@ class CameraController:
         selected_encoder_wrapper.thread = threading.Thread(
             target=self._start_encoding_thread,
             args=(selected_encoder_wrapper,),
-            daemon=True,
+            daemon=False,
         )
         selected_encoder_wrapper.thread.start()
 

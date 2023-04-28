@@ -1,10 +1,11 @@
-FROM balenalib/raspberrypi4-64-python:3.9-bullseye
+FROM balenalib/raspberrypi3-64-python:3.9-bullseye
 
 ENV UDEV=on
 
 RUN adduser --disabled-password --gecos '' docker && usermod -a -G tty,video docker
 
-RUN apt update -y && sudo apt upgrade && \
+RUN apt update -y && \
+    apt remove python3-numpy -y && \
     apt install -y \
     build-essential \
     libcamera-dev \
@@ -15,28 +16,38 @@ RUN apt update -y && sudo apt upgrade && \
     automake \
     autoconf \
     libtool \
-    ffmpeg && \
-    pip install --upgrade pip poetry wheel
+    ffmpeg \
+    libffi-dev \
+    libssl-dev
 
-# Install mp4fpsmod
+# Add piwheels to pip repositories
+RUN printf "[global]\nextra-index-url=https://www.piwheels.org/simple\n" > /etc/pip.conf
+RUN pip install --upgrade pip poetry wheel
+
+## Install mp4fpsmod
 RUN (cd /tmp && \
      rm -rf mp4fpsmod && \
      git clone https://github.com/nu774/mp4fpsmod.git && \
      cd mp4fpsmod && \
      ./bootstrap.sh && \
      ./configure && make && strip mp4fpsmod && \
-     sudo make install)
+     sudo make install && \
+     cd /tmp && rm -rf /tmp/mp4fpsmod)
 
 RUN set -ex \
  && apt install -y --no-install-recommends avahi-daemon libnss-mdns \
  && echo '*' > /etc/mdns.allow \
  && sed -i "s/hosts:.*/hosts:          files mdns4 dns/g" /etc/nsswitch.conf
 
+RUN rm -rf /var/lib/apt/lists/*
+
 RUN mkdir /app && chown -R docker:docker /app
 WORKDIR app
 
 COPY pyproject.toml poetry.lock ./
-RUN poetry config virtualenvs.create false && poetry install --only capture_v2 --no-root --no-interaction --no-ansi
+
+# Need to remove the pre-built numpy, upgrading for whatever reason does not work
+RUN pip uninstall numpy -y && poetry config virtualenvs.create false && poetry install --no-cache --only capture_v2 --no-root --no-interaction --no-ansi
 
 COPY capture_v2 ./capture_v2
 COPY capture_v2/entry-point.sh entry-point.sh

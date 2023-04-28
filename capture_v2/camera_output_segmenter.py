@@ -88,7 +88,9 @@ class CameraOutputSegmenter(FileOutput):
                             freq=f"{1000/self.frame_rate}L",
                         ).to_frame(index=False, name="frame_time")
 
-                        df_captured_frames = pd.DataFrame(self.frame_buffer)
+                        df_captured_frames = pd.DataFrame(
+                            self.frame_buffer
+                        ).sort_values(by="image_timestamp")
 
                         df_fitted_frames = pd.merge_asof(
                             left=df_expected_times,
