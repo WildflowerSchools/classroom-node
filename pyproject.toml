@@ -5,8 +5,7 @@ description = "utilities for wildflower cameras and raspberry pi"
 authors = ["Paul J DeCoursey <paul@decoursey.net>"]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "capture"}, {include = "cuwb_stream"}]
-
+packages = [{include = "capture"}, {include = "capture_v2"}, {include = "cuwb_stream"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -15,15 +14,29 @@ python = "^3.9"
 pylint = "^2.15.5"
 black = "^22.10.0"
 
-
 [tool.poetry.group.capture.dependencies]
-picamera = "1.13"
+picamera = {version = "1.13", platform = "linux"}
 ffmpeg-python = "0.2.0"
 minio = ">=7.1.12"
 pyyaml = ">=6.0"
 python-json-logger = ">=2.0.4"
 influx_line_protocol = ">=0.1.5"
 
+[tool.poetry.group.capture_v2.dependencies]
+# USE SYSTEM VERSION - picamera2 = {version = "^0.3.9", platform = "linux"}
+# USE SYSTEM VERSION - python-prctl = {version = "^1.8.1", platform = "linux"}
+numpy = [
+    {version = "1.24.2", markers = "platform_machine == 'armv7l'", source="piwheels"},
+    {version = "^1.24.3", markers = "platform_machine != 'armv7l'"},
+]
+pandas = [
+    {version = "2.0.0", markers = "platform_machine == 'armv7l'", source="piwheels"},
+    {version = "^2.0.1", markers = "platform_machine != 'armv7l'"},
+]
+pydantic = [
+    {version = "1.10.6", markers = "platform_machine == 'armv7l'", source="piwheels"},
+    {version = "^1.10.7", markers = "platform_machine != 'armv7l'"},
+]
 
 [tool.poetry.group.cuwb_stream.dependencies]
 cdp-py = "1.5.0"
@@ -32,10 +45,14 @@ requests = ">=2.28.1"
 tenacity = ">=8.1.0"
 apscheduler = ">=3.10.1"
 
-
 [tool.poetry.scripts]
 cuwb_stream = "cuwb_stream.tools.__main__:main"
 
+[[tool.poetry.source]]
+name = "piwheels"
+url = "https://www.piwheels.org/simple"
+default = false
+secondary = true
 
 [build-system]
 requires = ["poetry-core"]
