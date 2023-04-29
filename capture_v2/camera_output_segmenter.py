@@ -318,6 +318,6 @@ class CameraOutputSegmenter(FileOutput):
                 }
                 self.segments[current_filename_no_format] = segment
 
-        # logger.debug(
-        #     f"Frames handled: {self.frames_handled} | Frames captured: {self.frames_captured} | Frames in current clip: {self.current_clip_frame_count} | Include: {valid_time} | Current Time: {datetime.now().strftime('%M:%S.%f')[:-3]} | Frame Timestamp: {image_timestamp.strftime('%M:%S.%f')[:-3]} | Seconds: {frame_timestamp_in_seconds_from_init} | Keyframe: {keyframe} | Clip Start {self.clip_start_datetime} |  Clip End {self.clip_end_datetime} | Buffer size {len(self.frame_buffer)}"
-        # )
+        logger.debug(
+            f"Frames handled: {self.frames_handled} | Frames captured: {self.frames_captured} | Frames in current clip: {self.current_clip_frame_count} | Include: {valid_time} | Current Time: {datetime.now().strftime('%M:%S.%f')[:-3]} | Frame Timestamp: {image_timestamp.strftime('%M:%S.%f')[:-3]} | Seconds: {frame_timestamp_in_seconds_from_init} | Keyframe: {keyframe} | Clip Start {self.clip_start_datetime} |  Clip End {self.clip_end_datetime} | Buffer size {len(self.frame_buffer)}"
+        )
