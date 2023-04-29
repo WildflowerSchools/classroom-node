@@ -1,4 +1,5 @@
 from datetime import datetime
+import psutil
 import re
 import time
 from typing import Optional
@@ -43,3 +44,14 @@ def get_datetime_from_video_clip_name(filename: str = ""):
 
     video_clip_datetime_as_str = split_video_clip_file_name(filename)[1]
     return datetime.strptime(video_clip_datetime_as_str, "%Y_%m_%d_%H_%M-%S")
+
+def does_file_have_handle(file_path):
+    for proc in psutil.process_iter():
+        try:
+            for item in proc.open_files():
+                if file_path == item.path:
+                    return True
+        except Exception:
+            pass
+
+    return False
