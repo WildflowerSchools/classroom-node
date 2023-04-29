@@ -9,6 +9,7 @@ from picamera2.outputs import FileOutput, FfmpegOutput
 
 import pandas as pd
 
+from . import util
 from .log import logger
 
 
@@ -64,7 +65,8 @@ class CameraOutputSegmenter(FileOutput):
         self.buffer_abort = True
         with self.buffer_ready_condition:
             self.buffer_ready_condition.notify_all()
-        self.buffer_thread.join()
+        if self.buffer_thread.is_alive():
+            self.buffer_thread.join()
         logger.info("Camera output processing thread stopped")
 
     def process_buffer(self):
@@ -214,7 +216,9 @@ class CameraOutputSegmenter(FileOutput):
                     self.segments.pop(filename_key)
 
     def current_filename(self, format: str = None):
-        return f"video-{self.clip_start_datetime:%Y_%m_%d_%H_%M-%S}.{format}"
+        return util.video_clip_name(
+            clip_datetime=self.clip_start_datetime, format=format
+        )
 
     def current_filepath(self, output_dir: str = ".", format: str = None):
         return f"{output_dir}/{self.current_filename(format=format)}"

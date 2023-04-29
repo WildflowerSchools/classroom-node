@@ -127,3 +127,4 @@ k8s/sucrets.txt
 # capture v2
 output/
 capture_v2/output/
+staging/
