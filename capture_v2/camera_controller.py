@@ -65,7 +65,8 @@ class CameraController:
             self.stop_encoder(encoder_id=id)
 
         self.stop_event.set()
-        self.capture_reading_thread.join()
+        if self.capture_reading_thread.is_alive():
+            self.capture_reading_thread.join()
 
         logger.info(f"Stopped capture reading thread")
 
@@ -207,7 +208,8 @@ class CameraController:
         logger.info(f"Stopping encoding thread '{selected_encoder_wrapper.name}'...")
 
         selected_encoder_wrapper.stop_event.set()
-        selected_encoder_wrapper.thread.join()
+        if selected_encoder_wrapper.thread.is_alive():
+            selected_encoder_wrapper.thread.join()
 
         logger.info(f"Stopped encoding thread '{selected_encoder_wrapper.name}'")
 

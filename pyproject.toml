@@ -25,6 +25,9 @@ influx_line_protocol = ">=0.1.5"
 [tool.poetry.group.capture_v2.dependencies]
 # USE SYSTEM VERSION - picamera2 = {version = "^0.3.9", platform = "linux"}
 # USE SYSTEM VERSION - python-prctl = {version = "^1.8.1", platform = "linux"}
+minio = ">=7.1.12"
+psutil = "^5.9.5"
+watchdog = "^3.0.0"
 numpy = [
     {version = "1.24.2", markers = "platform_machine == 'armv7l'", source="piwheels"},
     {version = "^1.24.3", markers = "platform_machine != 'armv7l'"},

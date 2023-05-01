@@ -8,13 +8,14 @@ from .camera_controller import CameraController
 from .camera_output_segmenter import CameraOutputSegmenter
 from .config import Settings
 from .server import StreamingServer
+from .uploader import MinioVideoUploader
 from . import util
 
 
 def main():
     settings = Settings()
 
-    server, camera_controller = None, None
+    server, camera_controller, uploader = None, None, None
     try:
         server = StreamingServer(host=settings.SERVER_HOST, port=settings.SERVER_PORT)
 
@@ -49,10 +50,19 @@ def main():
         )
         camera_controller.start()
 
+        if settings.MINIO_ENABLE:
+            uploader = MinioVideoUploader(
+                output_dir=settings.VIDEO_CLIP_OUTPUT_DIR,
+                remove_video_after_upload=True,
+            )
+            uploader.start()
+
         server.start()
     finally:
         if server is not None:
-            server.shutdown()
+            server.stop()
+        if uploader is not None:
+            uploader.stop()
         if camera_controller is not None:
             camera_controller.stop()
 

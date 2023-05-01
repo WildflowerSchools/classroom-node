@@ -41,7 +41,7 @@ By default, 10 second camera snippets in mp4 format will be written to `/data/ca
 
 1. Install mp4fpsmod
 ```
-sudo apt update && sudo apt install autoconf libtool -y
+sudo apt update && sudo apt install autoconf libtool libcap-dev -y
 
 (cd /tmp &&
 rm -rf mp4fpsmod &&
@@ -62,10 +62,14 @@ curl -sSL https://install.python-poetry.org | python3 -
 ```
 export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring
 poetry install --only capture_v2
+pip install picamera2
 rm -rf `poetry env info -p`/lib/python3.9/site-packages/picamera2
 cp -r /usr/lib/python3/dist-packages/picamera2* `poetry env info -p`/lib/python3.9/site-packages/
+cp -r /usr/lib/python3/dist-packages/v4l2* `poetry env info -p`/lib/python3.9/site-packages/
 cp -r /usr/lib/python3/dist-packages/libcamera* `poetry env info -p`/lib/python3.9/site-packages/
 cp -r /usr/lib/python3/dist-packages/pykms* `poetry env info -p`/lib/python3.9/site-packages/
+pip install python-prctl piexif pidng
+
 
 poetry run python -m capture_v2
 ```

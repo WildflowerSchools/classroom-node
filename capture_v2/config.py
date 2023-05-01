@@ -14,6 +14,15 @@ class Settings(BaseSettings):
     SERVER_HOST: str = ""
     SERVER_PORT: int = 8000
 
+    MINIO_ENABLE: bool = False
+
+    MINIO_BUCKET: str = "videos"
+    MINIO_FOLDER: str = None
+    MINIO_KEY: str = ""
+    MINIO_SECRET: str = ""
+    MINIO_SERVICE_HOST: str = ""
+    MINIO_SERVICE_PORT: int = 9000
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
