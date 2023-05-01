@@ -72,7 +72,9 @@ class MinioVideoUploader:
             time.sleep(sleep)
             total_sleep += sleep
             if total_sleep > 10:
-                logger.error(f"Unable to upload '{video_path.resolve()}' to minio. Waited {total_sleep} seconds, but handles on file were never relinquished.")
+                logger.error(
+                    f"Unable to upload '{video_path.resolve()}' to minio. Waited {total_sleep} seconds, but handles on file were never relinquished."
+                )
                 return
 
         ts = util.video_clip_datetime_to_filename_date_format(video_datetime)
@@ -103,11 +105,11 @@ class MinioVideoUploader:
             except FileNotFoundError:
                 logger.warning(f"Couldn't remove '{event.src_path}', file disappeared?")
                 pass  # file disappeared?
-    
+
     def flush_existing_videos_on_disk(self):
         for item in os.listdir(self.output_dir):
             if item.endswith(".mp4"):
-                video_path = f'/{self.output_dir}/{item}'
+                video_path = f"/{self.output_dir}/{item}"
                 synthetic_event = FileCreatedEvent(src_path=video_path)
                 synthetic_event.is_synthetic = True
                 self.event_handler.dispatch(event=synthetic_event)
@@ -132,4 +134,3 @@ class MinioVideoUploader:
             self.observer.join()
             self.event_handler = None
             self.observer = None
-            

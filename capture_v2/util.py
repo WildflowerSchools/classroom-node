@@ -45,6 +45,7 @@ def get_datetime_from_video_clip_name(filename: str = ""):
     video_clip_datetime_as_str = split_video_clip_file_name(filename)[1]
     return datetime.strptime(video_clip_datetime_as_str, "%Y_%m_%d_%H_%M-%S")
 
+
 def does_file_have_handle(file_path):
     for proc in psutil.process_iter():
         try:
