@@ -22,7 +22,7 @@ RUN git clone https://github.com/nu774/mp4fpsmod.git && \
 
 # Add piwheels to pip repositories, update pip, and install poetry
 RUN printf "[global]\nextra-index-url=https://www.piwheels.org/simple\n" > /etc/pip.conf && \
-    pip install --no-cache-dir --upgrade pip poetry wheel
+    pip install --no-cache-dir --upgrade pip poetry wheel watchdog psutil
 
 
 FROM balenalib/raspberrypi3-python:3.9-bullseye
