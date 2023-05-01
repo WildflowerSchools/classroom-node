@@ -78,7 +78,9 @@ class MinioVideoUploader:
                 return
 
         ts = util.video_clip_datetime_to_filename_date_format(video_datetime)
-        obj_name = f'{self.MINIO_FOLDER}/{ts.replace("_", "/")}.mp4'
+
+        obj_parts = [self.MINIO_FOLDER, f"{ts.replace('_', '/')}.mp4"]
+        obj_name = "/".join(filter(lambda p: p is not None and p != "", obj_parts))
         logger.info(
             f"Uploading video '{event.src_path}' to minio. Storing as '{obj_name}'..."
         )

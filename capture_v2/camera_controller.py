@@ -6,10 +6,8 @@ import threading
 import time
 from typing import Optional, Union
 
-# from queue import Queue
-
+from libcamera import Transform
 from picamera2 import Picamera2
-from picamera2.configuration import CameraConfiguration
 from picamera2.encoders import Encoder, Quality
 from picamera2.outputs import Output
 
@@ -30,11 +28,24 @@ class _EncoderWrapper:
 
 class CameraController:
     def __init__(
-        self, main_config: dict, lores_config: dict = None, capture_frame_rate: int = 30
+        self,
+        main_config: dict,
+        lores_config: dict = None,
+        capture_frame_rate: int = 30,
+        hflip: bool = False,
+        vflip: bool = False,
     ):
         self.picam2 = Picamera2()
+
+        _hflip = 1 if hflip else 0
+        _vflip = 1 if vflip else 0
+
         self.picam2.configure(
-            self.picam2.create_video_configuration(main=main_config, lores=lores_config)
+            self.picam2.create_video_configuration(
+                main=main_config,
+                lores=lores_config,
+                transform=Transform(hflip=_hflip, vflip=_vflip),
+            )
         )
         self.picam2.set_controls({"FrameRate": capture_frame_rate})
 

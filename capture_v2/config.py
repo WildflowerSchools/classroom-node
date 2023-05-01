@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     VIDEO_CLIP_OUTPUT_DIR: str = f"{os.getcwd()}/output"
 
     CAMERA_CAPTURE_FRAME_RATE: int = 30
+    CAMERA_H_FLIP: bool = False
+    CAMERA_V_FLIP: bool = False
 
     SERVER_HOST: str = ""
     SERVER_PORT: int = 8000

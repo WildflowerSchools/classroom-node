@@ -23,6 +23,8 @@ def main():
             main_config={"size": (1296, 972), "format": "YUV420"},
             lores_config={"size": (640, 360), "format": "YUV420"},
             capture_frame_rate=settings.CAMERA_CAPTURE_FRAME_RATE,
+            hflip=settings.CAMERA_H_FLIP,
+            vflip=settings.CAMERA_V_FLIP,
         )
 
         mjpeg_lo_res_encoder = MJPEGEncoder(bitrate=12000000)
