@@ -1,4 +1,3 @@
-import psutil
 import time
 
 from minio import Minio
@@ -6,7 +5,7 @@ from minio.error import MinioException
 import os
 from pathlib import Path
 from watchdog.observers import Observer
-from watchdog.events import FileCreatedEvent, PatternMatchingEventHandler
+from watchdog.events import FileClosedEvent, PatternMatchingEventHandler
 
 from . import util
 from .config import Settings
@@ -55,7 +54,7 @@ class MinioVideoUploader:
 
         return client
 
-    def on_video_file_created(self, event):
+    def on_video_file_closed(self, event):
         video_path = Path(event.src_path)
         video_filename = video_path.name
         video_datetime = util.get_datetime_from_video_clip_name(video_filename)
@@ -112,7 +111,7 @@ class MinioVideoUploader:
         for item in os.listdir(self.output_dir):
             if item.endswith(".mp4"):
                 video_path = f"/{self.output_dir}/{item}"
-                synthetic_event = FileCreatedEvent(src_path=video_path)
+                synthetic_event = FileClosedEvent(src_path=video_path)
                 synthetic_event.is_synthetic = True
                 self.event_handler.dispatch(event=synthetic_event)
 
@@ -120,7 +119,7 @@ class MinioVideoUploader:
         self.event_handler = PatternMatchingEventHandler(
             patterns=["*.mp4"], ignore_directories=True, case_sensitive=False
         )
-        self.event_handler.on_created = self.on_video_file_created
+        self.event_handler.on_closed = self.on_video_file_closed
 
         self.observer = Observer()
         self.observer.schedule(
