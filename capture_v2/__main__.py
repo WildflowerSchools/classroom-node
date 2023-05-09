@@ -38,7 +38,7 @@ def main():
         mjpeg_lo_res_encoder.output = FileOutput(server.streaming_output)
 
         custom_output = CameraOutputSegmenter(
-            start_datetime=datetime.fromtimestamp(util.next_timeslot()),
+            # start_datetime=datetime.fromtimestamp(util.next_timeslot()),
             clip_duration=settings.VIDEO_CLIP_DURATION,
             staging_dir=settings.VIDEO_CLIP_STAGING_DIR,
             output_dir=settings.VIDEO_CLIP_OUTPUT_DIR,
