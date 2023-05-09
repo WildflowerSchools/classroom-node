@@ -6,7 +6,7 @@ from threading import Condition, Lock, Thread
 import time
 from typing import Optional
 
-from picamera2.outputs import FileOutput, FfmpegOutput
+from picamera2.outputs import Output
 
 import pandas as pd
 
@@ -14,7 +14,7 @@ from . import util
 from .log import logger
 
 
-class CameraOutputSegmenter(FileOutput):
+class CameraOutputSegmenter(Output):
     def __init__(
         self,
         # start_datetime: datetime,
@@ -72,7 +72,13 @@ class CameraOutputSegmenter(FileOutput):
         return self.current_clip_start_datetime - timedelta(
             milliseconds=1000 / self.frame_rate
         )
-
+    
+    @property
+    def current_clip_end_datetime(self):
+        return self.current_clip_start_datetime + timedelta(
+            seconds=self.clip_duration
+        )
+    
     @property
     def loose_clip_end_datetime(self):
         return self.current_clip_end_datetime + timedelta(
@@ -80,13 +86,7 @@ class CameraOutputSegmenter(FileOutput):
         )
 
     def refresh_timeslot(self):
-        self.current_clip_start_datetime = util.next_timeslot()
-
-    @property
-    def current_timeslot_end_datetime(self):
-        return self.current_timeslot_start_datetime + timedelta(
-            seconds=self.clip_duration
-        )
+        self.current_clip_start_datetime = datetime.fromtimestamp(util.next_timeslot())
 
     def start(self):
         self.buffer_thread.start()
