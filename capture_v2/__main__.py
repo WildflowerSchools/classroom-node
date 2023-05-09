@@ -1,5 +1,3 @@
-from datetime import datetime
-from functools import partial
 import sys
 
 from picamera2.encoders import MJPEGEncoder
@@ -12,7 +10,6 @@ from .log import logger
 from .scheduler import Scheduler
 from .server import StreamingServer
 from .uploader import MinioVideoUploader
-from . import util
 
 
 def main():
