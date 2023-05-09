@@ -1,4 +1,4 @@
-kubeadm init --pod-network-cidr=10.244.0.0/16 #--kubernetes-version 1.18.8
+kubeadm init --pod-network-cidr=10.244.0.0/16 #--kubernetes-version 1.26.4
 
 cp /etc/kubernetes/admin.conf $HOME/.kube/config
 chown $(id -u):$(id -g) $HOME/.kube/config

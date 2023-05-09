@@ -119,6 +119,8 @@ class CameraController:
                 self.picam2.stream_map[encoder_wrapper.stream_type], request
             )
 
+        encoder_wrapper.encoder.stop()
+
     def add_encoder(self, encoder: Encoder, name="", stream_type="main") -> str:
         id = self.random_id()
         self.encoders[id] = _EncoderWrapper(
@@ -176,6 +178,18 @@ class CameraController:
         if selected_encoder_id is None or selected_encoder_wrapper is None:
             return
 
+        if (
+            selected_encoder_wrapper.thread is not None
+            and selected_encoder_wrapper.thread.is_alive()
+        ):
+            if selected_encoder_wrapper.encoder is None:
+                stop_encoder(encoder_id=encoder_id, encoder=encoder)
+            elif not selected_encoder_wrapper.encoder.running:
+                selected_encoder_wrapper.encoder.start()
+                return
+            else:
+                return
+
         logger.info(f"Starting encoding thread '{selected_encoder_wrapper.name}'...")
 
         if hasattr(
@@ -213,16 +227,20 @@ class CameraController:
         selected_encoder_id, selected_encoder_wrapper = self.get_wrapped_encoder(
             encoder_id=encoder_id, encoder=encoder
         )
-        if selected_encoder_id is None or selected_encoder_wrapper is None:
+        if (
+            selected_encoder_id is None
+            or selected_encoder_wrapper is None
+            or selected_encoder_wrapper.thread is None
+        ):
             return
-
-        logger.info(f"Stopping encoding thread '{selected_encoder_wrapper.name}'...")
 
         selected_encoder_wrapper.stop_event.set()
         if selected_encoder_wrapper.thread.is_alive():
+            logger.info(
+                f"Stopping encoding thread '{selected_encoder_wrapper.name}'..."
+            )
             selected_encoder_wrapper.thread.join()
-
-        logger.info(f"Stopped encoding thread '{selected_encoder_wrapper.name}'")
+            logger.info(f"Stopped encoding thread '{selected_encoder_wrapper.name}'")
 
         selected_encoder_wrapper.stop_event.clear()
         selected_encoder_wrapper.thread = None
