@@ -34,9 +34,19 @@ def main():
             vflip=settings.CAMERA_V_FLIP,
         )
 
+        # Create/add our first encoder for the HTTP Stream
         mjpeg_lo_res_encoder = MJPEGEncoder(bitrate=12000000)
         mjpeg_lo_res_encoder.output = FileOutput(server.streaming_output)
+        camera_controller.add_encoder(
+            encoder=mjpeg_lo_res_encoder,
+            name="LoRes MJPEG Encoder - For Streaming HTTP Server",
+            stream_type="lores",
+        )
+        # We start the camera with knowledge of the Lores encoder for the HTTP streaming only
+        # Later, we add the CameraOutputSegmenter encoder and leave it up to the Scheduler to turn on/off
+        camera_controller.start()
 
+        # Create/add our fancy CameraOutputSegmenter encoder for turning the stream into video files
         custom_output = CameraOutputSegmenter(
             clip_duration=settings.VIDEO_CLIP_DURATION,
             staging_dir=settings.VIDEO_CLIP_STAGING_DIR,
@@ -45,20 +55,13 @@ def main():
         )
         mjpeg_main_res_encoder = MJPEGEncoder(bitrate=12000000)
         mjpeg_main_res_encoder.output = custom_output
-
-        camera_controller.add_encoder(
-            encoder=mjpeg_lo_res_encoder,
-            name="LoRes MJPEG Encoder - For Streaming HTTP Server",
-            stream_type="lores",
-        )
-        camera_controller.start()
-
         encoder_capture_loop_id = camera_controller.add_encoder(
             encoder=mjpeg_main_res_encoder,
             name="HiRes MJPEG Encoder - For Capture Loop",
             stream_type="main",
         )
 
+        # Start Minio if the MINIO_ENABLE env var was set
         if settings.MINIO_ENABLE:
             uploader = MinioVideoUploader(
                 output_dir=settings.VIDEO_CLIP_OUTPUT_DIR,
@@ -68,6 +71,10 @@ def main():
 
         server.start(background=True)
 
+        # Start the "Scheduler"
+        # Scheduler is responsible for starting/stopping the CameraOutputSegmenter encoder which
+        # converts camera output -> video files.
+        # It uses the classroom environment ID to fetch a classroms start/stop time
         capture_scheduler = Scheduler(environment_id=settings.CLASSROOM_ENVIRONMENT_ID)
         capture_scheduler.add_class_hours_tasks(
             name="capture",
