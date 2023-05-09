@@ -72,13 +72,11 @@ class CameraOutputSegmenter(Output):
         return self.current_clip_start_datetime - timedelta(
             milliseconds=1000 / self.frame_rate
         )
-    
+
     @property
     def current_clip_end_datetime(self):
-        return self.current_clip_start_datetime + timedelta(
-            seconds=self.clip_duration
-        )
-    
+        return self.current_clip_start_datetime + timedelta(seconds=self.clip_duration)
+
     @property
     def loose_clip_end_datetime(self):
         return self.current_clip_end_datetime + timedelta(
