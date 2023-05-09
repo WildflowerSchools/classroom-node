@@ -8,7 +8,8 @@ RUN apt update -y && \
     automake \
     autoconf \
     libtool \
-    libffi-dev && \
+    libffi-dev \
+    wget && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /tmp
@@ -19,6 +20,10 @@ RUN git clone https://github.com/nu774/mp4fpsmod.git && \
     ./bootstrap.sh && \
     ./configure && make && strip mp4fpsmod && \
     sudo make install
+
+# Install yq
+RUN wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_arm && \
+    chmod a+x /usr/local/bin/yq
 
 # Add piwheels to pip repositories, update pip, and install poetry
 RUN printf "[global]\nextra-index-url=https://www.piwheels.org/simple\n" > /etc/pip.conf && \
@@ -44,7 +49,7 @@ RUN apt update -y && \
     libnss-mdns && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=build-stage /usr/local/bin/mp4fpsmod /usr/local/bin/wheel /usr/local/bin/pip /usr/local/bin/poetry /usr/local/bin/
+COPY --from=build-stage /usr/local/bin/mp4fpsmod /usr/local/bin/wheel /usr/local/bin/pip /usr/local/bin/poetry /usr/local/bin/yq /usr/local/bin/
 COPY --from=build-stage /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
 
 # Add multicast DNS for easier network identification

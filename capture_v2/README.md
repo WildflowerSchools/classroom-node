@@ -26,9 +26,11 @@ sudo chown "$USER":"$USER" /data/capture_output
 docker run -d \
     --privileged \
     -p 8000:8000 \
+    --env POD_IP=127.0.0.1 \
     -v /run/udev:/run/udev:ro \
     -v /data/capture_output:/app/output \
-    wildflowerschools/classroom-node-capture-v2:v10
+    -v /boot:/boot \
+    wildflowerschools/classroom-node-capture-v2:v19-raspberrypi4-64
 ```
 
 4. 
