@@ -5,7 +5,9 @@
 WF_CONFIG=/boot/wildflower-config.yml
 if [ -f "${WF_CONFIG}" ]; then
     CAMERA_DEVICE_ID=`yq '.device_id' < "${WF_CONFIG}"`
+    CLASSROOM_ENVIRONMENT_ID=`yq '.environment-id' < "${WF_CONFIG}"`
 
+    export CLASSROOM_ENVIRONMENT_ID="${CLASSROOM_ENVIRONMENT_ID}"
     export MINIO_FOLDER="${CAMERA_DEVICE_ID}"
 fi
 
