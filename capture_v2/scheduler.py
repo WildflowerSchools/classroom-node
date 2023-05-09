@@ -56,12 +56,12 @@ class Scheduler:
         self.class_hours_tasks.append(
             ClassHoursTasks(
                 during_class_hours=SchedulerTask(
-                    name=name,
+                    name=f"start_{name}",
                     callback=during_class_hours_callback,
                     kwargs=during_class_hours_kwargs,
                 ),
                 outside_class_hours=SchedulerTask(
-                    name=name,
+                    name=f"stop_{name}",
                     callback=outside_class_hours_callback,
                     kwargs=outside_class_hours_kwargs,
                 ),
@@ -85,10 +85,9 @@ class Scheduler:
         for class_hours_task in self.class_hours_tasks:
             tz_aware_datetime = datetime.now(tz=timezone)
 
+            next_start: datetime
+            next_stop: datetime
             if classroom_start_time <= tz_aware_datetime <= classroom_end_time:
-                logger.info(
-                    f"Scheduling {class_hours_task.during_class_hours.name} to run at {tz_aware_datetime}"
-                )
                 job = self.tasks_scheduler.get_job(
                     job_id=class_hours_task.outside_class_hours.name
                 )
@@ -96,22 +95,10 @@ class Scheduler:
                     self.tasks_scheduler.remove_job(
                         job_id=class_hours_task.outside_class_hours.name
                     )
-                self.tasks_scheduler.add_job(
-                    class_hours_task.during_class_hours.callback,
-                    id=class_hours_task.during_class_hours.name,
-                    trigger=DateTrigger(
-                        run_date=tz_aware_datetime  # Run during school capture window
-                    ),
-                    replace_existing=True,
-                    coalesce=True,
-                    misfire_grace_time=5,
-                    kwargs=class_hours_task.during_class_hours.kwargs,
-                    **extra_job_args,
-                )
+
+                next_start = tz_aware_datetime
+                next_stop = classroom_end_time + timedelta(seconds=10)
             else:
-                logger.info(
-                    f"Scheduling {class_hours_task.outside_class_hours.name} to run at {tz_aware_datetime}"
-                )
                 job = self.tasks_scheduler.get_job(
                     job_id=class_hours_task.during_class_hours.name
                 )
@@ -119,18 +106,40 @@ class Scheduler:
                     self.tasks_scheduler.remove_job(
                         job_id=class_hours_task.during_class_hours.name
                     )
-                self.tasks_scheduler.add_job(
-                    class_hours_task.outside_class_hours.callback,
-                    id=class_hours_task.outside_class_hours.name,
-                    trigger=DateTrigger(
-                        run_date=tz_aware_datetime  # Run outside school capture window
-                    ),
-                    replace_existing=True,
-                    coalesce=True,
-                    misfire_grace_time=5,
-                    kwargs=class_hours_task.outside_class_hours.kwargs,
-                    **extra_job_args,
-                )
+                next_start = classroom_start_time - timedelta(seconds=10)
+                next_stop = tz_aware_datetime
+
+            logger.info(
+                f"Scheduling {class_hours_task.during_class_hours.name} to run at {next_start}"
+            )
+            self.tasks_scheduler.add_job(
+                class_hours_task.during_class_hours.callback,
+                id=class_hours_task.during_class_hours.name,
+                trigger=DateTrigger(
+                    run_date=next_start  # Run during school capture window
+                ),
+                replace_existing=True,
+                coalesce=True,
+                misfire_grace_time=5,
+                kwargs=class_hours_task.during_class_hours.kwargs,
+                **extra_job_args,
+            )
+
+            logger.info(
+                f"Scheduling {class_hours_task.outside_class_hours.name} to run at {next_stop}"
+            )
+            self.tasks_scheduler.add_job(
+                class_hours_task.outside_class_hours.callback,
+                id=class_hours_task.outside_class_hours.name,
+                trigger=DateTrigger(
+                    run_date=next_stop  # Run outside school capture window
+                ),
+                replace_existing=True,
+                coalesce=True,
+                misfire_grace_time=5,
+                kwargs=class_hours_task.outside_class_hours.kwargs,
+                **extra_job_args,
+            )
 
     def update_tasks(self):
         logger.info("Updating tasks")

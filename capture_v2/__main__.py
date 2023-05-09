@@ -71,7 +71,7 @@ def main():
 
         capture_scheduler = Scheduler(environment_id=settings.CLASSROOM_ENVIRONMENT_ID)
         capture_scheduler.add_class_hours_tasks(
-            name="start_stop_capture",
+            name="capture",
             during_class_hours_callback=camera_controller.start_encoder,
             outside_class_hours_callback=camera_controller.stop_encoder,
             during_class_hours_kwargs={"encoder_id": encoder_capture_loop_id},
