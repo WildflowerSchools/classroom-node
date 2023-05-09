@@ -4,8 +4,9 @@ from pathlib import Path
 import subprocess
 from threading import Condition, Lock, Thread
 import time
+from typing import Optional
 
-from picamera2.outputs import FileOutput, FfmpegOutput
+from picamera2.outputs import Output
 
 import pandas as pd
 
@@ -13,11 +14,12 @@ from . import util
 from .log import logger
 
 
-class CameraOutputSegmenter(FileOutput):
+class CameraOutputSegmenter(Output):
     def __init__(
         self,
-        start_datetime: datetime,
-        end_datetime: datetime = None,
+        # start_datetime: datetime,
+        # end_datetime: datetime = None,
+        # stop_recording_when_end_datetime_eclipsed: bool = True,
         clip_duration: int = 10,  # in seconds
         frame_rate: int = 10,
         pts=None,
@@ -33,7 +35,6 @@ class CameraOutputSegmenter(FileOutput):
         self.buffer_abort = False
         self.buffer_ready_condition = Condition()
         self.buffer_thread = Thread(target=self.process_buffer, daemon=True)
-        self.buffer_thread.start()
 
         Path(staging_dir).mkdir(parents=True, exist_ok=True)
         self.staging_dir = staging_dir
@@ -44,12 +45,11 @@ class CameraOutputSegmenter(FileOutput):
         self.frames_handled = 0
         self.frames_captured = 0
 
-        self.start_datetime = start_datetime
-        self.end_datetime = end_datetime
+        self._current_clip_start_datetime: Optional[datetime] = None
 
-        self.clip_start_datetime = start_datetime
-        self.clip_end_datetime = start_datetime + timedelta(seconds=clip_duration)
         self.clip_duration = clip_duration
+        self.camera_monotonic_start_time_in_seconds: Optional[datetime] = None
+
         self.current_clip_frame_count = 0
 
         self.frame_rate = frame_rate
@@ -58,7 +58,39 @@ class CameraOutputSegmenter(FileOutput):
             time.clock_gettime(time.CLOCK_REALTIME)
             - time.clock_gettime(time.CLOCK_MONOTONIC)
         )
-        self.end_time_eclipsed = False
+
+    @property
+    def current_clip_start_datetime(self):
+        return self._current_clip_start_datetime
+
+    @current_clip_start_datetime.setter
+    def current_clip_start_datetime(self, value: Optional[datetime]):
+        self._current_clip_start_datetime = value
+
+    @property
+    def loose_clip_start_datetime(self):
+        return self.current_clip_start_datetime - timedelta(
+            milliseconds=1000 / self.frame_rate
+        )
+
+    @property
+    def current_clip_end_datetime(self):
+        return self.current_clip_start_datetime + timedelta(seconds=self.clip_duration)
+
+    @property
+    def loose_clip_end_datetime(self):
+        return self.current_clip_end_datetime + timedelta(
+            milliseconds=1000 / self.frame_rate
+        )
+
+    def refresh_timeslot(self):
+        self.current_clip_start_datetime = datetime.fromtimestamp(util.next_timeslot())
+
+    def start(self):
+        self.buffer_thread.start()
+        self.refresh_timeslot()
+
+        super().start()
 
     def stop(self, wait=True):
         logger.info("Attempting to stop camera output processing thread...")
@@ -67,6 +99,9 @@ class CameraOutputSegmenter(FileOutput):
             self.buffer_ready_condition.notify_all()
         if self.buffer_thread.is_alive():
             self.buffer_thread.join()
+
+        self.current_clip_start_datetime = None
+        super().stop()
         logger.info("Camera output processing thread stopped")
 
     def process_buffer(self):
@@ -217,7 +252,7 @@ class CameraOutputSegmenter(FileOutput):
 
     def current_filename(self, format: str = None):
         return util.video_clip_name(
-            clip_datetime=self.clip_start_datetime, format=format
+            clip_datetime=self.current_clip_start_datetime, format=format
         )
 
     def current_filepath(self, output_dir: str = ".", format: str = None):
@@ -233,53 +268,28 @@ class CameraOutputSegmenter(FileOutput):
             with self.buffer_ready_condition:
                 self.buffer_ready_condition.notify_all()
 
-        self.clip_start_datetime = self.clip_end_datetime
-        self.clip_end_datetime = self.clip_end_datetime + timedelta(
-            seconds=self.clip_duration
-        )
+        self.current_clip_start_datetime = self.current_clip_end_datetime
         self.current_clip_frame_count = 0
 
     def set_camera_monotonic_start_time(self, camera_monotonic_start_time):
         self.camera_monotonic_start_time_in_seconds = camera_monotonic_start_time
 
     def outputframe(self, frame, keyframe=True, timestamp=None):
-        loose_start_datetime = self.start_datetime - timedelta(
-            milliseconds=1000 / self.frame_rate
-        )
-        loose_end_datetime = None
-        if self.end_datetime:
-            loose_end_datetime = self.end_datetime + timedelta(
-                milliseconds=1000 / self.frame_rate
-            )
-
-        loose_clip_end_datetime = self.clip_end_datetime + timedelta(
-            milliseconds=1000 / self.frame_rate
-        )
-
         self.frames_handled += 1
 
         frame_timestamp_in_seconds_from_init = 0
         if timestamp > 0:
             frame_timestamp_in_seconds_from_init = timestamp / 1e6
 
-        # If the monotonic start time is the time we get for the first photo, then we might want to subtract that value, not add it
         image_timestamp = self.monotonic_datetime_start + timedelta(
             seconds=self.camera_monotonic_start_time_in_seconds
             + frame_timestamp_in_seconds_from_init
         )
 
-        if loose_end_datetime is not None and image_timestamp >= loose_end_datetime:
-            if not self.end_time_eclipsed:
-                self.rotate()
-                self.end_time_eclipsed = True
-        if image_timestamp >= loose_clip_end_datetime:
-            if not self.end_time_eclipsed:
-                self.rotate()
+        if image_timestamp >= self.loose_clip_end_datetime:
+            self.rotate()
 
-        valid_time = image_timestamp >= loose_start_datetime and (
-            loose_end_datetime is None
-            or (loose_end_datetime is not None and image_timestamp < loose_end_datetime)
-        )
+        valid_time = image_timestamp >= self.loose_clip_start_datetime
         if valid_time:
             self.current_clip_frame_count += 1
             self.frames_captured += 1
@@ -311,13 +321,13 @@ class CameraOutputSegmenter(FileOutput):
                     "final_mp4_filepath": self.current_filepath(
                         output_dir=self.output_dir, format="mp4"
                     ),
-                    "start_datetime": self.clip_start_datetime,
-                    "end_datetime": self.clip_end_datetime,
+                    "start_datetime": self.current_clip_start_datetime,
+                    "end_datetime": self.current_clip_end_datetime,
                     "frames": [],
                     "ready": False,
                 }
                 self.segments[current_filename_no_format] = segment
 
         logger.debug(
-            f"Frames handled: {self.frames_handled} | Frames captured: {self.frames_captured} | Frames in current clip: {self.current_clip_frame_count} | Include: {valid_time} | Current Time: {datetime.now().strftime('%M:%S.%f')[:-3]} | Frame Timestamp: {image_timestamp.strftime('%M:%S.%f')[:-3]} | Seconds: {frame_timestamp_in_seconds_from_init} | Keyframe: {keyframe} | Clip Start {self.clip_start_datetime} |  Clip End {self.clip_end_datetime} | Buffer size {len(self.frame_buffer)}"
+            f"Frames handled: {self.frames_handled} | Frames captured: {self.frames_captured} | Frames in current clip: {self.current_clip_frame_count} | Include: {valid_time} | Current Time: {datetime.now().strftime('%M:%S.%f')[:-3]} | Frame Timestamp: {image_timestamp.strftime('%M:%S.%f')[:-3]} | Seconds: {frame_timestamp_in_seconds_from_init} | Keyframe: {keyframe} | Clip Start {self.current_clip_start_datetime} |  Clip End {self.current_clip_end_datetime} | Buffer size {len(self.frame_buffer)}"
         )

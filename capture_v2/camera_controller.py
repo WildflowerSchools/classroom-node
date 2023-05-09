@@ -183,7 +183,7 @@ class CameraController:
             and selected_encoder_wrapper.thread.is_alive()
         ):
             if selected_encoder_wrapper.encoder is None:
-                stop_encoder(encoder_id=encoder_id, encoder=encoder)
+                self.stop_encoder(encoder_id=encoder_id, encoder=encoder)
             elif not selected_encoder_wrapper.encoder.running:
                 selected_encoder_wrapper.encoder.start()
                 return
