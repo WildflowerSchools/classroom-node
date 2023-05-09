@@ -6,7 +6,7 @@ from threading import Condition, Lock, Thread
 import time
 from typing import Optional
 
-from picamera2.outputs import Output
+from picamera2.outputs import Output, FileOutput
 
 import pandas as pd
 
