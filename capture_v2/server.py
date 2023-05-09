@@ -105,15 +105,18 @@ class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
 
     def _start_thread(self) -> None:
         while not self.stop_event.is_set():
-            self.serve_forever()
+            try:
+                self.serve_forever()
+            finally:
+                self.server_close()
 
     def start(self, background: bool = False) -> None:
         logger.info("Starting http server...")
         if background:
             self.server_thread = threading.Thread(
-                target=self._start_server, daemon=False
+                target=self._start_thread, daemon=False
             )
-            self.server_thread._start_thread()
+            self.server_thread.start()
         else:
             self.serve_forever()
 
@@ -123,6 +126,7 @@ class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
     def stop(self) -> None:
         self.stop_event.set()
         if self.server_thread is not None and self.server_thread.is_alive():
+            self.shutdown()
             self.server_thread.join()
         else:
             if self.started:

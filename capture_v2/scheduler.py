@@ -5,7 +5,6 @@ from typing import Callable, TypedDict
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
-from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 import dateutil
 
@@ -27,8 +26,9 @@ class ClassHoursTasks:
 
 
 class Scheduler:
-    def __init__(self):
+    def __init__(self, environment_id: str):
         self.honeycomb_client = HoneycombCachingClient()
+        self.environment_id = environment_id
 
         self.coordinating_scheduler = BlockingScheduler()
         self.coordinating_scheduler.add_job(
@@ -45,38 +45,57 @@ class Scheduler:
         self.class_hours_tasks: list[ClassHoursTasks] = []
         self.all_hours_tasks: list[SchedulerTask] = []
 
-    def add_class_hours_tasks(self,
-                              name: str,
-                              during_class_hours_callback: Callable,
-                              outside_class_hours_callback: Callable,
-                              during_class_hours_kwargs: dict = None,
-                              outside_class_hours_kwargs: dict = None):
+    def add_class_hours_tasks(
+        self,
+        name: str,
+        during_class_hours_callback: Callable,
+        outside_class_hours_callback: Callable,
+        during_class_hours_kwargs: dict = None,
+        outside_class_hours_kwargs: dict = None,
+    ):
         self.class_hours_tasks.append(
             ClassHoursTasks(
-                during_class_hours=SchedulerTask(name=name,
-                                                 callback=during_class_hours_callback,
-                                                 kwargs=during_class_hours_kwargs),
-                outside_class_hours=SchedulerTask(name=name,
-                                                  callback=outside_class_hours_callback,
-                                                  kwargs=outside_class_hours_kwargs),
+                during_class_hours=SchedulerTask(
+                    name=name,
+                    callback=during_class_hours_callback,
+                    kwargs=during_class_hours_kwargs,
+                ),
+                outside_class_hours=SchedulerTask(
+                    name=name,
+                    callback=outside_class_hours_callback,
+                    kwargs=outside_class_hours_kwargs,
+                ),
             )
         )
 
     def add_all_hours_tasks(self, name: str, callback: Callable, kwargs: dict = None):
-        self.all_hours_tasks.append(SchedulerTask(name=name, callback=callback, kwargs=kwargs))
+        self.all_hours_tasks.append(
+            SchedulerTask(name=name, callback=callback, kwargs=kwargs)
+        )
 
-    def _update_active_hours_tasks(self,
-                                   environment_id: str,
-                                   environment_name: str,
-                                   classroom_start_time: datetime,
-                                   classroom_end_time: datetime,
-                                   timezone: dateutil.tz,
-                                   extra_job_args: dict = None):
+    def _update_active_hours_tasks(
+        self,
+        environment_id: str,
+        environment_name: str,
+        classroom_start_time: datetime,
+        classroom_end_time: datetime,
+        timezone: dateutil.tz,
+        extra_job_args: dict = {},
+    ):
         for class_hours_task in self.class_hours_tasks:
             tz_aware_datetime = datetime.now(tz=timezone)
 
             if classroom_start_time <= tz_aware_datetime <= classroom_end_time:
-                self.tasks_scheduler.remove_job(job_id=class_hours_task.outside_class_hours.name)
+                logger.info(
+                    f"Scheduling {class_hours_task.during_class_hours.name} to run at {tz_aware_datetime}"
+                )
+                job = self.tasks_scheduler.get_job(
+                    job_id=class_hours_task.outside_class_hours.name
+                )
+                if job is not None:
+                    self.tasks_scheduler.remove_job(
+                        job_id=class_hours_task.outside_class_hours.name
+                    )
                 self.tasks_scheduler.add_job(
                     class_hours_task.during_class_hours.callback,
                     id=class_hours_task.during_class_hours.name,
@@ -86,11 +105,20 @@ class Scheduler:
                     replace_existing=True,
                     coalesce=True,
                     misfire_grace_time=5,
-                    kwargs=class_hours_task.during_class_hours.kwargs
+                    kwargs=class_hours_task.during_class_hours.kwargs,
                     **extra_job_args,
                 )
             else:
-                self.tasks_scheduler.remove_job(job_id=class_hours_task.during_class_hours.name)
+                logger.info(
+                    f"Scheduling {class_hours_task.outside_class_hours.name} to run at {tz_aware_datetime}"
+                )
+                job = self.tasks_scheduler.get_job(
+                    job_id=class_hours_task.during_class_hours.name
+                )
+                if job is not None:
+                    self.tasks_scheduler.remove_job(
+                        job_id=class_hours_task.during_class_hours.name
+                    )
                 self.tasks_scheduler.add_job(
                     class_hours_task.outside_class_hours.callback,
                     id=class_hours_task.outside_class_hours.name,
@@ -100,13 +128,21 @@ class Scheduler:
                     replace_existing=True,
                     coalesce=True,
                     misfire_grace_time=5,
-                    kwargs=class_hours_task.outside_class_hours.kwargs
+                    kwargs=class_hours_task.outside_class_hours.kwargs,
                     **extra_job_args,
                 )
 
-    def update_tasks(self, environment_id: str):
+    def update_tasks(self):
         logger.info("Updating tasks")
-        environment = self.honeycomb_client.fetch_environment_by_id(environment_id=environment_id)
+        environment = self.honeycomb_client.fetch_environment_by_id(
+            environment_id=self.environment_id
+        )
+
+        if environment is None:
+            logger.error(
+                f"Unable to find an environment for environment ID: {self.environment_id}"
+            )
+            return
 
         if environment["timezone_name"] is None or environment["timezone_name"] == "":
             logger.warning(
@@ -115,7 +151,9 @@ class Scheduler:
             return
 
         if environment["name"] != "dahlia":
-            logger.warning(f"Temporarily skipping {environment['name']} until we can flexibly grab start/end times")
+            logger.warning(
+                f"Temporarily skipping {environment['name']} until we can flexibly grab start/end times"
+            )
             return
 
         # TODO: Fetch start/end times from Honeycomb
@@ -123,10 +161,14 @@ class Scheduler:
         tz = dateutil.tz.gettz(environment["timezone_name"])
         tz_aware_datetime = datetime.now(tz=tz)
         environment_start_datetime = datetime.combine(
-            date=tz_aware_datetime.date(), time=datetime.strptime("07:30", "%H:%M").time(), tzinfo=tz
+            date=tz_aware_datetime.date(),
+            time=datetime.strptime("07:30", "%H:%M").time(),
+            tzinfo=tz,
         )
         environment_end_datetime = datetime.combine(
-            date=tz_aware_datetime.date(), time=datetime.strptime("17:30", "%H:%M").time(), tzinfo=tz
+            date=tz_aware_datetime.date(),
+            time=datetime.strptime("17:30", "%H:%M").time(),
+            tzinfo=tz,
         )
 
         extra_job_args = {}
@@ -135,13 +177,14 @@ class Scheduler:
             extra_job_args["next_run_time"] = datetime.now(dateutil.tz.tzutc())
 
         self._update_active_hours_tasks(
-            environment_id=environment_id,
+            environment_id=self.environment_id,
             environment_name=environment["name"],
             classroom_start_time=environment_start_datetime,
             classroom_end_time=environment_end_datetime,
             timezone=tz,
-            extra_job_args=extra_job_args
+            extra_job_args=extra_job_args,
         )
+
     def start(self):
         self.tasks_scheduler.start()
         self.coordinating_scheduler.start()

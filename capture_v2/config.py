@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     MINIO_SERVICE_HOST: str = ""
     MINIO_SERVICE_PORT: int = 9000
 
+    CLASSROOM_ENVIRONMENT_ID: str = None
+
     HONEYCOMB_URI: str = "https://honeycomb.api.wildflower-tech.org/graphql"
     HONEYCOMB_DOMAIN: str = "wildflowerschools.auth0.com"
     HONEYCOMB_CLIENT_ID: str = None

@@ -25,6 +25,7 @@ influx_line_protocol = ">=0.1.5"
 [tool.poetry.group.capture_v2.dependencies]
 # USE SYSTEM VERSION - picamera2 = {version = "^0.3.9", platform = "linux"}
 # USE SYSTEM VERSION - python-prctl = {version = "^1.8.1", platform = "linux"}
+apscheduler = "^3.9.1"
 wf-honeycomb-io = "^2.1.0"
 minio = ">=7.1.12"
 psutil = "^5.9.5"

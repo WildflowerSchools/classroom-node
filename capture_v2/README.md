@@ -21,7 +21,7 @@ sudo mkdir -p /data/capture_output
 sudo chown "$USER":"$USER" /data/capture_output
 ```
 
-3. Run Container
+3. Run Containers
 ```
 docker run -d \
     --privileged \
@@ -31,6 +31,19 @@ docker run -d \
     -v /data/capture_output:/app/output \
     -v /boot:/boot \
     wildflowerschools/classroom-node-capture-v2:v19-raspberrypi4-64
+```
+
+Run Minio
+```
+docker run \
+   -d \
+   -p 9000:9000 \
+   -p 9090:9090 \
+   --name minio \
+   -v ~/minio/data:/data \
+   -e "MINIO_ROOT_USER=root" \
+   -e "MINIO_ROOT_PASSWORD=password1" \
+   quay.io/minio/minio server /data --console-address ":9090"
 ```
 
 4. 

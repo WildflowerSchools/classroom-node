@@ -8,6 +8,7 @@ from picamera2.outputs import FileOutput
 from .camera_controller import CameraController
 from .camera_output_segmenter import CameraOutputSegmenter
 from .config import Settings
+from .log import logger
 from .scheduler import Scheduler
 from .server import StreamingServer
 from .uploader import MinioVideoUploader
@@ -16,6 +17,10 @@ from . import util
 
 def main():
     settings = Settings()
+
+    if settings.CLASSROOM_ENVIRONMENT_ID is None:
+        logger.error("CLASSROOM_ENVIRONMENT_ID is required")
+        return
 
     server, camera_controller, uploader = None, None, None
     try:
@@ -64,13 +69,14 @@ def main():
 
         server.start(background=True)
 
-        capture_scheduler = Scheduler()
+        capture_scheduler = Scheduler(environment_id=settings.CLASSROOM_ENVIRONMENT_ID)
         capture_scheduler.add_class_hours_tasks(
-            name="start_capture",
+            name="start_stop_capture",
             during_class_hours_callback=camera_controller.start_encoder,
             outside_class_hours_callback=camera_controller.stop_encoder,
             during_class_hours_kwargs={"encoder_id": encoder_capture_loop_id},
-            outside_class_hours_kwargs={"encoder_id": encoder_capture_loop_id})
+            outside_class_hours_kwargs={"encoder_id": encoder_capture_loop_id},
+        )
         capture_scheduler.start()
     finally:
         if server is not None:
