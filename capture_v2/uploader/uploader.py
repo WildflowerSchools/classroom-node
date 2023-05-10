@@ -7,9 +7,9 @@ from pathlib import Path
 from watchdog.observers import Observer
 from watchdog.events import FileClosedEvent, PatternMatchingEventHandler
 
-from . import util
-from .config import Settings
-from .log import logger
+from capture_v2 import util
+from capture_v2.config import Settings
+from capture_v2.log import logger
 
 
 class MinioVideoUploader:

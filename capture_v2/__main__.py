@@ -3,13 +3,13 @@ import sys
 from picamera2.encoders import MJPEGEncoder
 from picamera2.outputs import FileOutput
 
-from .camera_controller import CameraController
-from .camera_output_segmenter import CameraOutputSegmenter
+from .camera.camera_controller import CameraController
+from .camera.camera_output_segmenter import CameraOutputSegmenter
 from .config import Settings
 from .log import logger
-from .scheduler import Scheduler
-from .server import StreamingServer
-from .uploader import MinioVideoUploader
+from .scheduler.scheduler import Scheduler
+from .server.server import StreamingServer
+from .uploader.uploader import MinioVideoUploader
 
 
 def main():
@@ -49,6 +49,7 @@ def main():
             staging_dir=settings.VIDEO_CLIP_STAGING_DIR,
             output_dir=settings.VIDEO_CLIP_OUTPUT_DIR,
             frame_rate=settings.VIDEO_CLIP_FRAME_RATE,
+            finalize_video_in_background=settings.FINALIZE_VIDEO_IN_BACKGROUND,
         )
         mjpeg_main_res_encoder = MJPEGEncoder(bitrate=12000000)
         mjpeg_main_res_encoder.output = custom_output

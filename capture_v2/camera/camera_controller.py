@@ -11,7 +11,7 @@ from picamera2 import Picamera2
 from picamera2.encoders import Encoder, Quality
 from picamera2.outputs import Output
 
-from .log import logger
+from capture_v2.log import logger
 
 
 class _EncoderWrapper:

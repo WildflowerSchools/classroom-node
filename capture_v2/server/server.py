@@ -5,7 +5,7 @@ import logging
 import socketserver
 import threading
 
-from .log import logger
+from capture_v2.log import logger
 
 PAGE = """\
 <html>

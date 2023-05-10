@@ -10,8 +10,8 @@ from picamera2.outputs import Output, FileOutput
 
 import pandas as pd
 
-from . import util
-from .log import logger
+from capture_v2 import util
+from capture_v2.log import logger
 
 
 class CameraOutputSegmenter(Output):
@@ -25,6 +25,7 @@ class CameraOutputSegmenter(Output):
         pts=None,
         staging_dir="./staging",
         output_dir="./output",
+        finalize_video_in_background=False,
     ):
         super().__init__(pts=pts)
         self.segments = {}
@@ -34,13 +35,15 @@ class CameraOutputSegmenter(Output):
         self.buffer_lock = Lock()
         self.buffer_abort = False
         self.buffer_ready_condition = Condition()
-        self.buffer_thread = Thread(target=self.process_buffer, daemon=True)
+        self.buffer_thread = Thread(target=self.process_buffer, daemon=False)
 
         Path(staging_dir).mkdir(parents=True, exist_ok=True)
         self.staging_dir = staging_dir
 
         Path(output_dir).mkdir(parents=True, exist_ok=True)
         self.output_dir = output_dir
+
+        self.finalize_video_in_background = finalize_video_in_background
 
         self.frames_handled = 0
         self.frames_captured = 0
@@ -197,6 +200,7 @@ class CameraOutputSegmenter(Output):
                         logger.info(
                             f"Processing '{segment['name']}' - Converting mjpeg to mp4..."
                         )
+                        # Very important: using h264_v4l2m2m for hardware acceleration
                         cmds.append(
                             f"ffmpeg -f mjpeg -r {self.frame_rate} -loglevel warning -y -thread_queue_size 32 -i {segment['staging_source_filepath']} -pix_fmt yuv420p -b:v 4M -c:v h264_v4l2m2m -f mp4 {segment['staging_mp4_filepath']}"
                         )
@@ -226,9 +230,8 @@ class CameraOutputSegmenter(Output):
                         """
                         Thanks @Daniel G: https://stackoverflow.com/a/2581943/17081132
 
-                        I added this so we could trigger a callback when the cmd line script ends. In our case, I wanted to pring a simple message to stdout.
+                        I added this so we could trigger a callback when the cmd line script ends. In our case, I wanted to print a simple message to stdout.
                         """
-
                         def run_in_thread(on_exit, popen_args):
                             proc = subprocess.Popen(**popen_args)
                             proc.wait()
@@ -241,12 +244,18 @@ class CameraOutputSegmenter(Output):
                         thread.start()
                         return thread
 
-                    thread_safe_callback = lambda msg: lambda: logger.info(msg)
+                    _popen_args = {"args": "; ".join(cmds.copy()), "shell": True}
                     done_msg = f"Processing '{segment['name']}' - Done. Video file path: '{segment['final_mp4_filepath']}'"
-                    popen_and_call(
-                        thread_safe_callback(done_msg),
-                        {"args": "; ".join(cmds.copy()), "shell": True},
-                    )
+                    if self.finalize_video_in_background:
+                        thread_safe_callback = lambda msg: lambda: logger.info(msg)
+                        popen_and_call(
+                            on_exit=thread_safe_callback(done_msg),
+                            popen_args=_popen_args,
+                        )
+                    else:
+                        proc = subprocess.Popen(**_popen_args)
+                        proc.wait()
+                        logger.info(done_msg)
 
                     self.segments.pop(filename_key)
 

@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     HONEYCOMB_CLIENT_SECRET: str = None
     HONEYCOMB_AUDIENCE: str = "wildflower-tech.org"
 
+    FINALIZE_VIDEO_IN_BACKGROUND: bool = (
+        False  # Dangerous - could lead to many FFMPEG jobs which could take down the Pi
+    )
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

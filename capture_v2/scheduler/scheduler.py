@@ -8,8 +8,8 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.date import DateTrigger
 import dateutil
 
-from .honeycomb_service import HoneycombCachingClient
-from .log import logger
+from capture_v2.honeycomb_service import HoneycombCachingClient
+from capture_v2.log import logger
 
 
 @dataclass
