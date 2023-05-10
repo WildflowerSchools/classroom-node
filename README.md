@@ -94,7 +94,7 @@ First login and then copy creds into the cluster:
     kubectl create secret generic logzio-logs-secret \
         --from-literal=logzio-log-shipping-token='<<REDACTED>>' \
         --from-literal=logzio-log-listener='https://listener.logz.io:8071' \
-        -n monitoring
+        -n kube-logging
 
     # fluentd-general-config.yml contains the CLASSROOM_ENVIRONMENT env var
     kubectl apply -f ./private/fluentd-general-config.yml
