@@ -10,7 +10,7 @@ class LogConfig(BaseModel):
 
     LOGGER_NAME: str = "wf_camera_processor"
     LOG_FORMAT: str = "%(asctime)s,%(msecs)03d | %(levelname)s | %(name)s | %(message)s"
-    LOG_LEVEL: str = "DEBUG"
+    LOG_LEVEL: str = "INFO"
 
     # Logging config
     version = 1
