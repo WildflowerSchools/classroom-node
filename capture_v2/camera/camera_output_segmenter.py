@@ -104,7 +104,7 @@ class CameraOutputSegmenter(Output):
         super().start()
 
     def stop(self, wait=True):
-        logger.info("Attempting to stop camera output processing thread...")
+        logger.info("Attempting to stop camera output segmenter processing...")
         self.buffer_abort = True
         with self.buffer_ready_condition:
             self.buffer_ready_condition.notify_all()
@@ -117,10 +117,10 @@ class CameraOutputSegmenter(Output):
 
         self.current_clip_start_datetime = None
         super().stop()
-        logger.info("Camera output processing thread stopped")
+        logger.info("Camera output segmenter processing stopped")
 
     def process_buffer(self):
-        logger.info("Starting processing buffer")
+        logger.info(f"Starting processing buffer, next timeslot: {self.current_clip_start_datetime}")
         while not self.buffer_abort:
             with self.buffer_ready_condition:
                 self.buffer_ready_condition.wait()
@@ -274,6 +274,8 @@ class CameraOutputSegmenter(Output):
                         logger.error(f"Failed preparing '{segment['name']}': {e}")
 
                     self.segments.pop(filename_key)
+
+        logger.info("Stopped processing buffer")
 
     def current_filename(self, format: str = None):
         return util.video_clip_name(

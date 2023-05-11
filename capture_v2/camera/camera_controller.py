@@ -106,7 +106,7 @@ class CameraController:
         while not self.stop_event.is_set():
             request = self.picam2.capture_request()
             for _, e in self.encoders.items():
-                if e.encoder.running:
+                if e.encoder._running:
                     e.frame_request_queue.appendleft(copy.copy(request))
             request.release()
 
