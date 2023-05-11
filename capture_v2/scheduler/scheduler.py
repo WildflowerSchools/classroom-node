@@ -176,7 +176,7 @@ class Scheduler:
         )
         environment_end_datetime = datetime.combine(
             date=tz_aware_datetime.date(),
-            time=datetime.strptime("17:30", "%H:%M").time(),
+            time=datetime.strptime("19:30", "%H:%M").time(),
             tzinfo=tz,
         )
 

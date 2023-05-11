@@ -120,7 +120,9 @@ class CameraOutputSegmenter(Output):
         logger.info("Camera output segmenter processing stopped")
 
     def process_buffer(self):
-        logger.info(f"Starting processing buffer, next timeslot: {self.current_clip_start_datetime}")
+        logger.info(
+            f"Starting processing buffer, next timeslot: {self.current_clip_start_datetime}"
+        )
         while not self.buffer_abort:
             with self.buffer_ready_condition:
                 self.buffer_ready_condition.wait()
