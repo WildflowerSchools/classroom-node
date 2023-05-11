@@ -27,7 +27,7 @@ RUN wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/d
 
 # Add piwheels to pip repositories, update pip, and install poetry
 RUN printf "[global]\nextra-index-url=https://www.piwheels.org/simple\n" > /etc/pip.conf && \
-    pip install --no-cache-dir --upgrade pip poetry wheel watchdog psutil
+    pip install --no-cache-dir --upgrade pip cryptography==40.0.1 poetry wheel watchdog psutil
 
 
 FROM balenalib/raspberrypi3-python:3.9-bullseye

@@ -92,9 +92,11 @@ class CameraOutputSegmenter(Output):
     def start(self):
         if self.buffer_thread is None:
             self.buffer_thread = Thread(target=self.process_buffer, daemon=False)
-        
+
         if self.buffer_thread.is_alive():
-            logger.info("Not starting the camera output segmenter, it's already running")
+            logger.info(
+                "Not starting the camera output segmenter, it's already running"
+            )
         else:
             self.refresh_timeslot()
             self.buffer_thread.start()
@@ -108,7 +110,7 @@ class CameraOutputSegmenter(Output):
             self.buffer_ready_condition.notify_all()
         if self.buffer_thread.is_alive():
             self.buffer_thread.join()
-        
+
         self.buffer_abort = False
         self.buffer_thread = None
         self.segments = {}
@@ -242,6 +244,7 @@ class CameraOutputSegmenter(Output):
 
                         I added this so we could trigger a callback when the cmd line script ends. In our case, I wanted to print a simple message to stdout.
                         """
+
                         def run_in_thread(on_exit, popen_args):
                             proc = subprocess.Popen(**popen_args)
                             proc.wait()
