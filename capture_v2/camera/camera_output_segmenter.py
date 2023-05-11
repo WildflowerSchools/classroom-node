@@ -35,7 +35,7 @@ class CameraOutputSegmenter(Output):
         self.buffer_lock = Lock()
         self.buffer_abort = False
         self.buffer_ready_condition = Condition()
-        self.buffer_thread = Thread(target=self.process_buffer, daemon=False)
+        self.buffer_thread = None
 
         Path(staging_dir).mkdir(parents=True, exist_ok=True)
         self.staging_dir = staging_dir
@@ -90,8 +90,14 @@ class CameraOutputSegmenter(Output):
         self.current_clip_start_datetime = datetime.fromtimestamp(util.next_timeslot())
 
     def start(self):
-        self.buffer_thread.start()
-        self.refresh_timeslot()
+        if self.buffer_thread is None:
+            self.buffer_thread = Thread(target=self.process_buffer, daemon=False)
+        
+        if self.buffer_thread.is_alive():
+            logger.info("Not starting the camera output segmenter, it's already running")
+        else:
+            self.refresh_timeslot()
+            self.buffer_thread.start()
 
         super().start()
 
@@ -102,6 +108,10 @@ class CameraOutputSegmenter(Output):
             self.buffer_ready_condition.notify_all()
         if self.buffer_thread.is_alive():
             self.buffer_thread.join()
+        
+        self.buffer_abort = False
+        self.buffer_thread = None
+        self.segments = {}
 
         self.current_clip_start_datetime = None
         super().stop()
@@ -244,18 +254,21 @@ class CameraOutputSegmenter(Output):
                         thread.start()
                         return thread
 
-                    _popen_args = {"args": "; ".join(cmds.copy()), "shell": True}
-                    done_msg = f"Processing '{segment['name']}' - Done. Video file path: '{segment['final_mp4_filepath']}'"
-                    if self.finalize_video_in_background:
-                        thread_safe_callback = lambda msg: lambda: logger.info(msg)
-                        popen_and_call(
-                            on_exit=thread_safe_callback(done_msg),
-                            popen_args=_popen_args,
-                        )
-                    else:
-                        proc = subprocess.Popen(**_popen_args)
-                        proc.wait()
-                        logger.info(done_msg)
+                    try:
+                        _popen_args = {"args": "; ".join(cmds.copy()), "shell": True}
+                        done_msg = f"Processing '{segment['name']}' - Done. Video file path: '{segment['final_mp4_filepath']}'"
+                        if self.finalize_video_in_background:
+                            thread_safe_callback = lambda msg: lambda: logger.info(msg)
+                            popen_and_call(
+                                on_exit=thread_safe_callback(done_msg),
+                                popen_args=_popen_args,
+                            )
+                        else:
+                            proc = subprocess.Popen(**_popen_args)
+                            proc.wait()
+                            logger.info(done_msg)
+                    except Exception as e:
+                        logger.error(f"Failed preparing '{segment['name']}': {e}")
 
                     self.segments.pop(filename_key)
 
