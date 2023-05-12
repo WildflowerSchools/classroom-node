@@ -6,7 +6,7 @@ import threading
 import time
 from typing import Optional, Union
 
-from libcamera import Transform
+from libcamera import Transform, controls
 from picamera2 import Picamera2
 from picamera2.encoders import Encoder, Quality
 from picamera2.outputs import Output
@@ -40,6 +40,8 @@ class CameraController:
         vflip: bool = False,
     ):
         self.picam2 = Picamera2()
+        self.picam2.options['quality'] = 95  # Highest quality available
+        self.picam2.options["compress_level"] = 0  # No compression
 
         _hflip = 1 if hflip else 0
         _vflip = 1 if vflip else 0
@@ -51,7 +53,11 @@ class CameraController:
                 transform=Transform(hflip=_hflip, vflip=_vflip),
             )
         )
-        self.picam2.set_controls({"FrameRate": capture_frame_rate})
+        self.picam2.set_controls({
+            "FrameRate": capture_frame_rate,
+            "NoiseReductionMode": controls.draft.NoiseReductionModeEnum.HighQuality,
+            "AeExposureMode": controls.AeExposureModeEnum.Long
+        })
 
         self.encoders: dict[str, _EncoderWrapper] = {}
         self.capture_start_in_monotonic_seconds: int = None
@@ -220,7 +226,7 @@ class CameraController:
         min_frame_duration = self.picam2.camera_ctrl_info["FrameDurationLimits"][1].min
         min_frame_duration = max(min_frame_duration, 33333)
         selected_encoder_wrapper.encoder.framerate = 1000000 / min_frame_duration
-        selected_encoder_wrapper.encoder._setup(Quality.MEDIUM)
+        selected_encoder_wrapper.encoder._setup(Quality.HIGH) # default to high bitrate if a bitrate wasn't supplied when initializing the encoder
 
         selected_encoder_wrapper.stop_event = threading.Event()
         selected_encoder_wrapper.thread = threading.Thread(

@@ -33,12 +33,12 @@ def main():
         )
 
         # Create/add our first encoder for the HTTP Stream
-        mjpeg_lo_res_encoder = MJPEGEncoder(bitrate=12000000)
+        mjpeg_lo_res_encoder = MJPEGEncoder(bitrate=18000000)
         mjpeg_lo_res_encoder.output = FileOutput(server.streaming_output)
         camera_controller.add_encoder(
             encoder=mjpeg_lo_res_encoder,
             name="LoRes MJPEG Encoder - For Streaming HTTP Server",
-            stream_type="lores",
+            stream_type="main",
         )
         # We start the camera with knowledge of the Lores encoder for the HTTP streaming only
         # Later, we add the CameraOutputSegmenter encoder and leave it up to the Scheduler to turn on/off
@@ -52,7 +52,7 @@ def main():
             frame_rate=settings.VIDEO_CLIP_FRAME_RATE,
             finalize_video_in_background=settings.FINALIZE_VIDEO_IN_BACKGROUND,
         )
-        mjpeg_main_res_encoder = MJPEGEncoder(bitrate=12000000)
+        mjpeg_main_res_encoder = MJPEGEncoder(bitrate=18000000)
         mjpeg_main_res_encoder.output = custom_output
         encoder_capture_loop_id = camera_controller.add_encoder(
             encoder=mjpeg_main_res_encoder,
