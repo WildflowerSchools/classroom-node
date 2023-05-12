@@ -7,6 +7,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.date import DateTrigger
 import dateutil
+import dateutil.tz
 
 from capture_v2.honeycomb_service import HoneycombCachingClient
 from capture_v2.log import logger
@@ -75,8 +76,6 @@ class Scheduler:
 
     def _update_active_hours_tasks(
         self,
-        environment_id: str,
-        environment_name: str,
         classroom_start_time: datetime,
         classroom_end_time: datetime,
         timezone: dateutil.tz,
@@ -113,7 +112,7 @@ class Scheduler:
                 f"Scheduling {class_hours_task.during_class_hours.name} to run at {next_start}"
             )
             self.tasks_scheduler.add_job(
-                class_hours_task.during_class_hours.callback,
+                func=class_hours_task.during_class_hours.callback,
                 id=class_hours_task.during_class_hours.name,
                 trigger=DateTrigger(
                     run_date=next_start  # Run during school capture window
@@ -129,7 +128,7 @@ class Scheduler:
                 f"Scheduling {class_hours_task.outside_class_hours.name} to run at {next_stop}"
             )
             self.tasks_scheduler.add_job(
-                class_hours_task.outside_class_hours.callback,
+                func=class_hours_task.outside_class_hours.callback,
                 id=class_hours_task.outside_class_hours.name,
                 trigger=DateTrigger(
                     run_date=next_stop  # Run outside school capture window
@@ -186,8 +185,6 @@ class Scheduler:
             extra_job_args["next_run_time"] = datetime.now(dateutil.tz.tzutc())
 
         self._update_active_hours_tasks(
-            environment_id=self.environment_id,
-            environment_name=environment["name"],
             classroom_start_time=environment_start_datetime,
             classroom_end_time=environment_end_datetime,
             timezone=tz,

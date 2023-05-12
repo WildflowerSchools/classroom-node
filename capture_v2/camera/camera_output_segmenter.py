@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from itertools import filterfalse
+import logging
 from pathlib import Path
 import subprocess
 from threading import Condition, Lock, Thread
@@ -113,11 +114,12 @@ class CameraOutputSegmenter(Output):
 
         self.buffer_abort = False
         self.buffer_thread = None
+        self.frame_buffer = []
         self.segments = {}
 
-        self.current_clip_start_datetime = None
         super().stop()
         logger.info("Camera output segmenter processing stopped")
+        self.current_clip_start_datetime = None
 
     def process_buffer(self):
         logger.info(
@@ -216,7 +218,7 @@ class CameraOutputSegmenter(Output):
                         )
                         # Very important: using h264_v4l2m2m for hardware acceleration
                         cmds.append(
-                            f"ffmpeg -f mjpeg -r {self.frame_rate} -loglevel warning -y -thread_queue_size 32 -i {segment['staging_source_filepath']} -pix_fmt yuv420p -b:v 4M -c:v h264_v4l2m2m -f mp4 {segment['staging_mp4_filepath']}"
+                            f"ffmpeg -f mjpeg -r {self.frame_rate} -hide_banner -loglevel warning -y -thread_queue_size 32 -i {segment['staging_source_filepath']} -pix_fmt yuv420p -b:v 4M -c:v h264_v4l2m2m -f mp4 {segment['staging_mp4_filepath']}"
                         )
 
                     # Sleep because the mp4 file isn't quite ready for some reason...
@@ -230,7 +232,7 @@ class CameraOutputSegmenter(Output):
                     )
                     # Now chop the final "devil" frame and output the mp4 to its final destination
                     cmds.append(
-                        f"ffmpeg -y -i {segment['staging_mp4_filepath']}.mp4fpsmod.tmp -frames:v {self.clip_duration * self.frame_rate} -c:v copy {segment['final_mp4_filepath']}"
+                        f"ffmpeg -y -hide_banner -loglevel warning -i {segment['staging_mp4_filepath']}.mp4fpsmod.tmp -frames:v {self.clip_duration * self.frame_rate} -c:v copy {segment['final_mp4_filepath']}"
                     )
 
                     # mkvmerge example - Note, I couldn't get mkvmerge to work with mp4s. I needed to convert it to an mkv which added an extra step
@@ -357,6 +359,9 @@ class CameraOutputSegmenter(Output):
                 }
                 self.segments[current_filename_no_format] = segment
 
-        logger.debug(
-            f"Frames handled: {self.frames_handled} | Frames captured: {self.frames_captured} | Frames in current clip: {self.current_clip_frame_count} | Include: {valid_time} | Current Time: {datetime.now().strftime('%M:%S.%f')[:-3]} | Frame Timestamp: {image_timestamp.strftime('%M:%S.%f')[:-3]} | Seconds: {frame_timestamp_in_seconds_from_init} | Keyframe: {keyframe} | Clip Start {self.current_clip_start_datetime} |  Clip End {self.current_clip_end_datetime} | Buffer size {len(self.frame_buffer)}"
-        )
+        log_message = f"Frames handled: {self.frames_handled} | Frames captured: {self.frames_captured} | Frames in current clip: {self.current_clip_frame_count} | Include: {valid_time} | Current Time: {datetime.now().strftime('%M:%S.%f')[:-3]} | Frame Timestamp: {image_timestamp.strftime('%M:%S.%f')[:-3]} | Seconds: {frame_timestamp_in_seconds_from_init} | Keyframe: {keyframe} | Clip Start {self.current_clip_start_datetime} |  Clip End {self.current_clip_end_datetime} | Buffer size {len(self.frame_buffer)}"
+        if logger.level == logging.DEBUG:
+            logger.debug(log_message)
+        else:
+            if self.frames_handled == 1 or (self.frames_handled % 1000) == 0:
+                logger.info(log_message)

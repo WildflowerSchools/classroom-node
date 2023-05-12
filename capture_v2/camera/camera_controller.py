@@ -183,6 +183,7 @@ class CameraController:
         if selected_encoder_id is None or selected_encoder_wrapper is None:
             return
 
+        logger.info(f"Starting encoding thread '{selected_encoder_wrapper.name}'...")
         if (
             selected_encoder_wrapper.thread is not None
             and selected_encoder_wrapper.thread.is_alive()
@@ -192,13 +193,11 @@ class CameraController:
                 err = f"Unable to start encoder ID '{encoder_id}', the encoder object itself is set to None"
                 logger.error(err)
                 raise EncoderError(err)
-            elif not selected_encoder_wrapper.encoder.running:
+            elif not selected_encoder_wrapper.encoder._running:
                 selected_encoder_wrapper.encoder.start()
                 return
             else:
                 return
-
-        logger.info(f"Starting encoding thread '{selected_encoder_wrapper.name}'...")
 
         if hasattr(
             selected_encoder_wrapper.encoder.output, "set_camera_monotonic_start_time"
