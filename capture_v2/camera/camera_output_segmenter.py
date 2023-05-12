@@ -362,6 +362,5 @@ class CameraOutputSegmenter(Output):
         log_message = f"Frames handled: {self.frames_handled} | Frames captured: {self.frames_captured} | Frames in current clip: {self.current_clip_frame_count} | Include: {valid_time} | Current Time: {datetime.now().strftime('%M:%S.%f')[:-3]} | Frame Timestamp: {image_timestamp.strftime('%M:%S.%f')[:-3]} | Seconds: {frame_timestamp_in_seconds_from_init} | Keyframe: {keyframe} | Clip Start {self.current_clip_start_datetime} |  Clip End {self.current_clip_end_datetime} | Buffer size {len(self.frame_buffer)}"
         if logger.level == logging.DEBUG:
             logger.debug(log_message)
-        else:
-            if self.frames_handled == 1 or (self.frames_handled % 1000) == 0:
+        elif self.frames_handled == 1 or (self.frames_handled % 1000) == 0:
                 logger.info(log_message)
