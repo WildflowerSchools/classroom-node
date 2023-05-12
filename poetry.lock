@@ -128,14 +128,14 @@ crt = ["awscrt (==0.16.9)"]
 
 [[package]]
 name = "cdp-py"
-version = "1.5.0"
+version = "1.6.2"
 description = "Ciholas Data Protocol"
 category = "dev"
 optional = false
 python-versions = ">=3"
 files = [
-    {file = "cdp-py-1.5.0.tar.gz", hash = "sha256:3bb37f3206c4a3cc738bcaf9cc8301adee749c09e2c4539126ac4482db51931b"},
-    {file = "cdp_py-1.5.0-py3-none-any.whl", hash = "sha256:f0f04cf1bde8166a5359aa1541c3c0120f8978bf26b40d397635908e0e4d4a2e"},
+    {file = "cdp-py-1.6.2.tar.gz", hash = "sha256:1ba6514a8354c864dda0c60b31675d243455f34e16eae2f49bdbe7ffc8059d30"},
+    {file = "cdp_py-1.6.2-py3-none-any.whl", hash = "sha256:ae6c0d7c2177358906bbcfac6cf78f694c919740beafde587dcafdf63af1c03a"},
 ]
 
 [[package]]
@@ -1342,4 +1342,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "e8542bd404f12dc5e1b311720b5139047516cdc7b470a769bffe9a7024581548"
+content-hash = "cfaa2b6248a865886187f131b46334cec0783e08ad322438126b6b3e9197c3d2"

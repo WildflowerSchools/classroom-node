@@ -7,11 +7,11 @@ import cdp
 
 
 POSITION_V3 = 0x0135
-ACCELEROMETER_V2 = 0x0139
-GYROSCOPE_V2 = 0x013A
-MAGNETOMETER_V2 = 0x013B
+ACCELEROMETER_V3 = 0x017A
+GYROSCOPE_V3 = 0x017B
+MAGNETOMETER_V3 = 0x017C
 PRESSURE_V2 = 0x013C
-QUATERNION_V2 = 0x013D
+QUATERNION_V3 = 0x0178
 TEMPERATURE_V2 = 0x013E
 DEVICE_NAMES = 0x013F
 HARDWARE_STATUS_V2 = 0x0138
@@ -142,7 +142,7 @@ class CUWBCollector:
             ]
             for item in self.extract_data_items(
                 socket_read_time,
-                ACCELEROMETER_V2,
+                ACCELEROMETER_V3,
                 "accelerometer",
                 cdp_packet,
                 fields,
@@ -151,7 +151,7 @@ class CUWBCollector:
                 yield item
             for item in self.extract_data_items(
                 socket_read_time,
-                GYROSCOPE_V2,
+                GYROSCOPE_V3,
                 "gyroscope",
                 cdp_packet,
                 fields,
@@ -160,7 +160,7 @@ class CUWBCollector:
                 yield item
             for item in self.extract_data_items(
                 socket_read_time,
-                MAGNETOMETER_V2,
+                MAGNETOMETER_V3,
                 "magnetometer",
                 cdp_packet,
                 fields,
@@ -176,10 +176,11 @@ class CUWBCollector:
                 "z",
                 "w",
                 "quaternion_type",
+                "quality"
             ]
             for item in self.extract_data_items(
                 socket_read_time,
-                QUATERNION_V2,
+                QUATERNION_V3,
                 "quaternion",
                 cdp_packet,
                 fields,
