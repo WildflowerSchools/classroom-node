@@ -8,11 +8,13 @@ readme = "README.md"
 packages = [{include = "capture"}, {include = "capture_v2"}, {include = "cuwb_stream"}]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.9,<3.12"
+botocore = "^1.29.133"
+wf-gqlpycgen = "^0.7.4"
 
 [tool.poetry.group.dev.dependencies]
 pylint = "^2.15.5"
-black = "^22.10.0"
+black = "^23.3.0"
 
 [tool.poetry.group.capture.dependencies]
 picamera = {version = "1.13", platform = "linux"}
