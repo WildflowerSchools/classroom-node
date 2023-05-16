@@ -6,7 +6,6 @@ Capture UWB UDP packets and decode them into meaningful messages.
 
 ```
 cd cuwb_stream
-pip install -r development.txt
 REPO_NAME=<<CUSTOM PPA CIHOLAS CREATED FOR WILDFLOWER>> pytest ./tests 
 ```
 

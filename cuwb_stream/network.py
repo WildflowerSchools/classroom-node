@@ -62,15 +62,15 @@ class CUWBNetwork:
         return False
 
     @retry(wait=wait_random_exponential(multiplier=1, max=10))
-    def ensure_network_is_running(self, name):
-        if not self.is_network_running(name):
-            self.start_network(name)
-            if not self.is_network_running(name):
-                raise FailedToStart(name)
+    def ensure_network_is_running(self, network_name):
+        if not self.is_network_running(network_name):
+            self.start_network(network_name)
+            if not self.is_network_running(network_name):
+                raise FailedToStart(network_name)
 
     @retry(wait=wait_random_exponential(multiplier=1, max=10))
-    def ensure_network_is_stopped(self, name):
-        if self.is_network_running(name):
-            self.stop_network(name)
-            if self.is_network_running(name):
-                raise FailedToStop(name)
+    def ensure_network_is_stopped(self, network_name):
+        if self.is_network_running(network_name):
+            self.stop_network(network_name)
+            if self.is_network_running(network_name):
+                raise FailedToStop(network_name)

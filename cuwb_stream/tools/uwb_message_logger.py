@@ -2,8 +2,9 @@ from datetime import datetime
 import json
 
 
-class UWBConnectionSnoop:
-    def write_uwb_network_message(self, object_id, data, msg_type):
+class UWBMessageLogger:
+    @staticmethod
+    def write_uwb_network_message(object_id, data, msg_type):
         value_dict = {
             "object_id": object_id,
         }
@@ -13,7 +14,8 @@ class UWBConnectionSnoop:
         print(json.dumps(value_dict))
         return value_dict
 
-    def write_uwb_socket_message(self, object_id, data):
+    @staticmethod
+    def write_uwb_socket_message(object_id, data):
         value_dict = {"object_id": object_id}
         value_dict.update(data)
         value_dict["timestamp"] = (

@@ -5,7 +5,7 @@ import click
 from apscheduler.schedulers.background import BackgroundScheduler
 from cuwb_stream.collector import CUWBCollector
 from cuwb_stream.network import CUWBNetwork
-from cuwb_stream.tools.snooplogg import UWBConnectionSnoop
+from cuwb_stream.tools.uwb_message_logger import UWBMessageLogger
 
 
 @click.group()
@@ -41,10 +41,13 @@ def collect(
     socket_port=None,
     socket_route_ip=None,
 ):
-    database_connection = UWBConnectionSnoop()
+    uwb_message_logger = UWBMessageLogger()
 
     uwb_network = CUWBNetwork(host=network_ip, port=network_port)
+
     network_name = uwb_network.get_networks()[0]['name']
+    uwb_network.ensure_network_is_running(network_name=network_name)
+
     def capture_network_details():
         devices = uwb_network.get_devices(network_name=network_name)
         settings = uwb_network.get_settings(network_name=network_name)
@@ -55,14 +58,13 @@ def collect(
             device_data['firmware_version'] = device_firmware_version_dict.get('version_string', None)
             device_data['firmware_sha'] = device_firmware_version_dict.get('sha', None)
 
-            database_connection.write_uwb_network_message(
+            uwb_message_logger.write_uwb_network_message(
                 object_id=device_data['serial_number'], data={'device_data': device_data}, msg_type="network_devices"
             )
 
-        database_connection.write_uwb_network_message(
+        uwb_message_logger.write_uwb_network_message(
             object_id=uuid.uuid4().hex, data={'setting_data': settings}, msg_type="network_settings"
         )
-
     capture_network_details()
 
     scheduler = BackgroundScheduler()
@@ -73,11 +75,12 @@ def collect(
         with CUWBCollector(ip=socket_ip, port=socket_port, route_ip=socket_route_ip) as collector:
             for bit in collector:
                 if bit:
-                    database_connection.write_uwb_socket_message(
+                    uwb_message_logger.write_uwb_socket_message(
                         object_id=bit.get("serial_number", uuid.uuid4().hex), data=bit
                     )
     except SystemExit:
         scheduler.shutdown()
+
 
 @main.command()
 @click.option("--name", help="name of the network")
@@ -85,9 +88,9 @@ def collect(
 def network(name, action):
     cuwb_network = CUWBNetwork()
     if action == "start":
-        cuwb_network.ensure_network_is_running(name)
+        cuwb_network.ensure_network_is_running(network_name=name)
     elif action == "stop":
-        cuwb_network.ensure_network_is_stopped(name)
+        cuwb_network.ensure_network_is_stopped(network_name=name)
 
 
 if __name__ == "__main__":
