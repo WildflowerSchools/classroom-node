@@ -1,9 +1,7 @@
-from collections import deque
 import copy
 import random
 import string
 import threading
-import time
 from typing import Optional, Union
 
 from libcamera import Transform, controls
@@ -19,11 +17,6 @@ class _EncoderWrapper:
         self.encoder: Encoder = encoder
         self.name: str = name
         self.stream_type: str = stream_type
-        self.thread: Optional[threading.Thread] = None
-        self.frame_request_queue: deque = deque(
-            maxlen=500
-        )  # Each encoder can hold upto 500 frames
-        self.stop_event: threading.Event = threading.Event()
 
 
 class EncoderError(Exception):
@@ -111,26 +104,20 @@ class CameraController:
     def _start_capture_read(self):
         while not self.stop_event.is_set():
             request = self.picam2.capture_request()
-            for _, e in self.encoders.items():
+            encoders = copy.copy(self.encoders)
+            for _, e in encoders.items():
                 if e.encoder._running:
-                    e.frame_request_queue.appendleft(copy.copy(request))
+                    e.encoder.encode(
+                        self.picam2.stream_map[e.stream_type], request
+                    )
             request.release()
 
     def _start_encoding_thread(self, encoder_wrapper: _EncoderWrapper):
-        encoder_wrapper.encoder.start()
-        logger.info(f"Started encoding thread '{encoder_wrapper.name}'")
-
-        while not encoder_wrapper.stop_event.is_set():
-            if len(encoder_wrapper.frame_request_queue) == 0:
-                time.sleep(0.05)
-                continue
-
-            request = encoder_wrapper.frame_request_queue.pop()
-            encoder_wrapper.encoder.encode(
-                self.picam2.stream_map[encoder_wrapper.stream_type], request
-            )
-
-        encoder_wrapper.encoder.stop()
+        if encoder_wrapper.encoder._running:
+            logger.info(f"Encoding thread '{encoder_wrapper.name}' already running")
+        else:
+            encoder_wrapper.encoder.start()
+            logger.info(f"Started encoding thread '{encoder_wrapper.name}'")
 
     def add_encoder(self, encoder: Encoder, name="", stream_type="main") -> str:
         id = self.random_id()
@@ -189,21 +176,15 @@ class CameraController:
         if selected_encoder_id is None or selected_encoder_wrapper is None:
             return
 
-        logger.info(f"Starting encoding thread '{selected_encoder_wrapper.name}'...")
-        if (
-            selected_encoder_wrapper.thread is not None
-            and selected_encoder_wrapper.thread.is_alive()
-        ):
-            if selected_encoder_wrapper.encoder is None:
-                self.stop_encoder(encoder_id=encoder_id, encoder=encoder)
-                err = f"Unable to start encoder ID '{encoder_id}', the encoder object itself is set to None"
-                logger.error(err)
-                raise EncoderError(err)
-            elif not selected_encoder_wrapper.encoder._running:
-                selected_encoder_wrapper.encoder.start()
-                return
-            else:
-                return
+        if selected_encoder_wrapper.encoder is None:
+            self.stop_encoder(encoder_id=encoder_id, encoder=encoder)
+            err = f"Unable to start encoder '{selected_encoder_wrapper.name}', the encoder object itself is set to None"
+            logger.error(err)
+            raise EncoderError(err)
+        
+        if selected_encoder_wrapper.encoder._running:
+            err = f"Encoder ID '{selected_encoder_wrapper.name}' is already running"
+            return
 
         if hasattr(
             selected_encoder_wrapper.encoder.output, "set_camera_monotonic_start_time"
@@ -228,13 +209,7 @@ class CameraController:
         selected_encoder_wrapper.encoder.framerate = 1000000 / min_frame_duration
         selected_encoder_wrapper.encoder._setup(Quality.HIGH) # default to high bitrate if a bitrate wasn't supplied when initializing the encoder
 
-        selected_encoder_wrapper.stop_event = threading.Event()
-        selected_encoder_wrapper.thread = threading.Thread(
-            target=self._start_encoding_thread,
-            args=(selected_encoder_wrapper,),
-            daemon=False,
-        )
-        selected_encoder_wrapper.thread.start()
+        selected_encoder_wrapper.encoder.start()
 
     def stop_encoder(self, encoder_id: str = None, encoder: Encoder = None):
         selected_encoder_id, selected_encoder_wrapper = self.get_wrapped_encoder(
@@ -243,18 +218,10 @@ class CameraController:
         if (
             selected_encoder_id is None
             or selected_encoder_wrapper is None
-            or selected_encoder_wrapper.thread is None
         ):
             return
 
-        selected_encoder_wrapper.stop_event.set()
-        if selected_encoder_wrapper.thread.is_alive():
-            logger.info(
-                f"Stopping encoding thread '{selected_encoder_wrapper.name}'..."
-            )
-            selected_encoder_wrapper.thread.join()
-            logger.info(f"Stopped encoding thread '{selected_encoder_wrapper.name}'")
-
-        selected_encoder_wrapper.frame_request_queue.clear()
-        selected_encoder_wrapper.stop_event.clear()
-        selected_encoder_wrapper.thread = None
+        logger.info(f"Stopping encoding thread '{selected_encoder_wrapper.name}'...")
+        if selected_encoder_wrapper.encoder._running:
+            selected_encoder_wrapper.encoder.stop()
+        logger.info(f"Stopped encoding thread '{selected_encoder_wrapper.name}'")

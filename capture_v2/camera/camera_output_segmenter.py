@@ -109,7 +109,7 @@ class CameraOutputSegmenter(Output):
         self.buffer_abort = True
         with self.buffer_ready_condition:
             self.buffer_ready_condition.notify_all()
-        if self.buffer_thread.is_alive():
+        if self.buffer_thread is not None and self.buffer_thread.is_alive():
             self.buffer_thread.join()
 
         self.buffer_abort = False
@@ -119,6 +119,7 @@ class CameraOutputSegmenter(Output):
 
         super().stop()
         logger.info("Camera output segmenter processing stopped")
+        
         self.current_clip_start_datetime = None
 
     def process_buffer(self):
@@ -306,6 +307,9 @@ class CameraOutputSegmenter(Output):
         self.camera_monotonic_start_time_in_seconds = camera_monotonic_start_time
 
     def outputframe(self, frame, keyframe=True, timestamp=None):
+        if not self.recording:
+            return
+        
         output_processed_timestamp = datetime.now()
         self.frames_handled += 1
 
