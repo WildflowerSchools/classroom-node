@@ -109,7 +109,7 @@ class CameraOutputSegmenter(Output):
         self.buffer_abort = True
         with self.buffer_ready_condition:
             self.buffer_ready_condition.notify_all()
-        if self.buffer_thread.is_alive():
+        if self.buffer_thread is not None and self.buffer_thread.is_alive():
             self.buffer_thread.join()
 
         self.buffer_abort = False
@@ -119,6 +119,7 @@ class CameraOutputSegmenter(Output):
 
         super().stop()
         logger.info("Camera output segmenter processing stopped")
+
         self.current_clip_start_datetime = None
 
     def process_buffer(self):
@@ -306,6 +307,10 @@ class CameraOutputSegmenter(Output):
         self.camera_monotonic_start_time_in_seconds = camera_monotonic_start_time
 
     def outputframe(self, frame, keyframe=True, timestamp=None):
+        if not self.recording:
+            return
+
+        output_processed_timestamp = datetime.now()
         self.frames_handled += 1
 
         frame_timestamp_in_seconds_from_init = 0
@@ -359,8 +364,8 @@ class CameraOutputSegmenter(Output):
                 }
                 self.segments[current_filename_no_format] = segment
 
-        log_message = f"Frames handled: {self.frames_handled} | Frames captured: {self.frames_captured} | Frames in current clip: {self.current_clip_frame_count} | Include: {valid_time} | Current Time: {datetime.now().strftime('%M:%S.%f')[:-3]} | Frame Timestamp: {image_timestamp.strftime('%M:%S.%f')[:-3]} | Seconds: {frame_timestamp_in_seconds_from_init} | Keyframe: {keyframe} | Clip Start {self.current_clip_start_datetime} |  Clip End {self.current_clip_end_datetime} | Buffer size {len(self.frame_buffer)}"
+        log_message = f"Frames handled: {self.frames_handled} | Frames captured: {self.frames_captured} | Frames in current clip: {self.current_clip_frame_count} | Include: {valid_time} | Current Time: {output_processed_timestamp.strftime('%H:%M:%S.%f')[:-3]} | Frame Timestamp: {image_timestamp.strftime('%H:%M:%S.%f')[:-3]} | Frame Processing Delay: {(output_processed_timestamp - image_timestamp).total_seconds()} | Frame Monotonic Timestamp: {frame_timestamp_in_seconds_from_init} | Keyframe: {keyframe} | Clip Start {self.current_clip_start_datetime} |  Clip End {self.current_clip_end_datetime} | Buffer size {len(self.frame_buffer)}"
         if logger.level == logging.DEBUG:
             logger.debug(log_message)
         elif self.frames_handled == 1 or (self.frames_handled % 1000) == 0:
-                logger.info(log_message)
+            logger.info(log_message)

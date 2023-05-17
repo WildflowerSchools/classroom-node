@@ -79,7 +79,6 @@ class Scheduler:
         classroom_start_time: datetime,
         classroom_end_time: datetime,
         timezone: dateutil.tz,
-        extra_job_args: dict = {},
     ):
         for class_hours_task in self.class_hours_tasks:
             tz_aware_datetime = datetime.now(tz=timezone)
@@ -108,6 +107,13 @@ class Scheduler:
                 next_start = classroom_start_time - timedelta(seconds=10)
                 next_stop = tz_aware_datetime
 
+            start_extra_job_args = {}
+            DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
+            if DEBUG:
+                start_extra_job_args["next_run_time"] = datetime.now(
+                    dateutil.tz.tzutc()
+                )
+
             logger.info(
                 f"Scheduling {class_hours_task.during_class_hours.name} to run at {next_start}"
             )
@@ -121,7 +127,7 @@ class Scheduler:
                 coalesce=True,
                 misfire_grace_time=5,
                 kwargs=class_hours_task.during_class_hours.kwargs,
-                **extra_job_args,
+                **start_extra_job_args,
             )
 
             logger.info(
@@ -137,7 +143,6 @@ class Scheduler:
                 coalesce=True,
                 misfire_grace_time=5,
                 kwargs=class_hours_task.outside_class_hours.kwargs,
-                **extra_job_args,
             )
 
     def update_tasks(self):
@@ -175,20 +180,14 @@ class Scheduler:
         )
         environment_end_datetime = datetime.combine(
             date=tz_aware_datetime.date(),
-            time=datetime.strptime("21:30", "%H:%M").time(),
+            time=datetime.strptime("17:30", "%H:%M").time(),
             tzinfo=tz,
         )
-
-        extra_job_args = {}
-        DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
-        if DEBUG:
-            extra_job_args["next_run_time"] = datetime.now(dateutil.tz.tzutc())
 
         self._update_active_hours_tasks(
             classroom_start_time=environment_start_datetime,
             classroom_end_time=environment_end_datetime,
             timezone=tz,
-            extra_job_args=extra_job_args,
         )
 
     def start(self):
