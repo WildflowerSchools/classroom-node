@@ -52,6 +52,11 @@ requests = ">=2.28.1"
 tenacity = ">=8.1.0"
 apscheduler = ">=3.10.1"
 
+[tool.poetry.group.video_proxy.dependencies]
+av = "^10.0.0"
+fastapi = "^0.95.2"
+uvicorn = {extras = ["standard"], version = "^0.22.0"}
+
 [tool.poetry.scripts]
 cuwb_stream = "cuwb_stream.tools.__main__:main"
 
