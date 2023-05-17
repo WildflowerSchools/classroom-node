@@ -359,8 +359,8 @@ class CameraOutputSegmenter(Output):
                 }
                 self.segments[current_filename_no_format] = segment
 
-        log_message = f"Frames handled: {self.frames_handled} | Frames captured: {self.frames_captured} | Frames in current clip: {self.current_clip_frame_count} | Include: {valid_time} | Current Time: {datetime.now().strftime('%H:%M:%S.%f')[:-3]} | Frame Monotonic Timestamp: {frame_timestamp_in_seconds_from_init} | Frame Timestamp: {image_timestamp.strftime('%H:%M:%S.%f')[:-3]} | Keyframe: {keyframe} | Clip Start {self.current_clip_start_datetime} |  Clip End {self.current_clip_end_datetime} | Buffer size {len(self.frame_buffer)}"
+        log_message = f"Frames handled: {self.frames_handled} | Frames captured: {self.frames_captured} | Frames in current clip: {self.current_clip_frame_count} | Include: {valid_time} | Current Time: {datetime.now().strftime('%H:%M:%S.%f')[:-3]} | Frame Timestamp: {image_timestamp.strftime('%H:%M:%S.%f')[:-3]} | Frame Monotonic Timestamp: {frame_timestamp_in_seconds_from_init} | Keyframe: {keyframe} | Clip Start {self.current_clip_start_datetime} |  Clip End {self.current_clip_end_datetime} | Buffer size {len(self.frame_buffer)}"
         if logger.level == logging.DEBUG:
             logger.debug(log_message)
         elif self.frames_handled == 1 or (self.frames_handled % 1000) == 0:
-                logger.info(log_message)
+            logger.info(log_message)
