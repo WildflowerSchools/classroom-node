@@ -119,7 +119,7 @@ class CameraOutputSegmenter(Output):
 
         super().stop()
         logger.info("Camera output segmenter processing stopped")
-        
+
         self.current_clip_start_datetime = None
 
     def process_buffer(self):
@@ -309,7 +309,7 @@ class CameraOutputSegmenter(Output):
     def outputframe(self, frame, keyframe=True, timestamp=None):
         if not self.recording:
             return
-        
+
         output_processed_timestamp = datetime.now()
         self.frames_handled += 1
 

@@ -78,7 +78,7 @@ class Scheduler:
         self,
         classroom_start_time: datetime,
         classroom_end_time: datetime,
-        timezone: dateutil.tz
+        timezone: dateutil.tz,
     ):
         for class_hours_task in self.class_hours_tasks:
             tz_aware_datetime = datetime.now(tz=timezone)
@@ -110,8 +110,10 @@ class Scheduler:
             start_extra_job_args = {}
             DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
             if DEBUG:
-                start_extra_job_args["next_run_time"] = datetime.now(dateutil.tz.tzutc())
-                
+                start_extra_job_args["next_run_time"] = datetime.now(
+                    dateutil.tz.tzutc()
+                )
+
             logger.info(
                 f"Scheduling {class_hours_task.during_class_hours.name} to run at {next_start}"
             )
@@ -140,7 +142,7 @@ class Scheduler:
                 replace_existing=True,
                 coalesce=True,
                 misfire_grace_time=5,
-                kwargs=class_hours_task.outside_class_hours.kwargs
+                kwargs=class_hours_task.outside_class_hours.kwargs,
             )
 
     def update_tasks(self):
@@ -185,7 +187,7 @@ class Scheduler:
         self._update_active_hours_tasks(
             classroom_start_time=environment_start_datetime,
             classroom_end_time=environment_end_datetime,
-            timezone=tz
+            timezone=tz,
         )
 
     def start(self):

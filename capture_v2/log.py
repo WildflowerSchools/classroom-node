@@ -11,7 +11,9 @@ class LogConfig(BaseModel):
 
     LOGGER_NAME: str = "wf_camera_processor"
     LOG_FORMAT: str = "%(asctime)s,%(msecs)03d | %(levelname)s | %(name)s | %(message)s"
-    LOG_LEVEL: str = "DEBUG" if os.getenv("DEBUG", "False").lower() in ("true", "1", "t") else "INFO"
+    LOG_LEVEL: str = (
+        "DEBUG" if os.getenv("DEBUG", "False").lower() in ("true", "1", "t") else "INFO"
+    )
 
     # Logging config
     version = 1
