@@ -105,7 +105,7 @@ class CameraOutputSegmenter(Output):
             self.refresh_timeslot()
             self.buffer_thread.start()
             self.is_initial_capture_loop_pass = True
-        
+
         super().start()
 
     def stop(self, wait=True):
@@ -318,7 +318,9 @@ class CameraOutputSegmenter(Output):
             return
 
         if self.is_initial_capture_loop_pass:
-            self.capture_start_monotonic_time_in_seconds = time.clock_gettime(time.CLOCK_MONOTONIC)
+            self.capture_start_monotonic_time_in_seconds = time.clock_gettime(
+                time.CLOCK_MONOTONIC
+            )
             self.initial_frame_timestamp_in_seconds_from_camera_init = timestamp / 1e6
             self.is_initial_capture_loop_pass = False
 
@@ -329,8 +331,10 @@ class CameraOutputSegmenter(Output):
         if timestamp > 0:
             frame_timestamp_in_seconds_from_camera_init = timestamp / 1e6
 
-        image_timestamp = (self.system_monotonic_datetime_start +
-                           timedelta(seconds=self.camera_monotonic_start_time_in_seconds + frame_timestamp_in_seconds_from_camera_init))
+        image_timestamp = self.system_monotonic_datetime_start + timedelta(
+            seconds=self.camera_monotonic_start_time_in_seconds
+            + frame_timestamp_in_seconds_from_camera_init
+        )
 
         if image_timestamp >= self.loose_clip_end_datetime:
             self.rotate()
