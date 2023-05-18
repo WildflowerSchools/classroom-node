@@ -226,7 +226,7 @@ class CameraOutputSegmenter(Output):
                         )
                         # Very important: using h264_v4l2m2m for hardware acceleration
                         cmds.append(
-                            f"ffmpeg -f mjpeg -r {self.frame_rate} -hide_banner -loglevel warning -y -thread_queue_size 32 -i {segment['staging_source_filepath']} -pix_fmt yuv420p -b:v 4M -c:v h264_v4l2m2m -f mp4 {segment['staging_mp4_filepath']}"
+                            f"ffmpeg -f mjpeg -r {self.frame_rate} -hide_banner -loglevel warning -y -thread_queue_size 32 -i {segment['staging_source_filepath']} -pix_fmt yuv420p -b:v 3M -c:v h264_v4l2m2m -f mp4 {segment['staging_mp4_filepath']}"
                         )
 
                     # Sleep because the mp4 file isn't quite ready for some reason...
