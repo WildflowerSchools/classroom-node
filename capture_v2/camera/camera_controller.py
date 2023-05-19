@@ -77,7 +77,7 @@ class CameraController:
         self.picam2.stop()
 
     def stop(self):
-        for id, e in self.encoders.items():
+        for id, e in list(self.encoders.items()):
             self.stop_encoder(encoder_id=id)
 
         self.stop_event.set()
@@ -100,14 +100,14 @@ class CameraController:
         )
         self.capture_reading_thread.start()
 
-        for id, e in self.encoders.items():
+        for id, e in list(self.encoders.items()):
             self.start_encoder(encoder_id=id)
 
     def _start_capture_read(self):
         while not self.stop_event.is_set():
             request = self.picam2.capture_request()
-            encoders = copy.copy(self.encoders)
-            for _, e in encoders.items():
+
+            for _, e in list(self.encoders.items()):
                 if e.encoder._running:
                     e.encoder.encode(self.picam2.stream_map[e.stream_type], request)
             request.release()
@@ -129,7 +129,7 @@ class CameraController:
                 selected_encoder_id = encoder_id
                 selected_encoder_wrapper = self.encoders[encoder_id]
         elif encoder is not None:
-            for id, wrapped_encoder in self.encoders.items():
+            for id, wrapped_encoder in list(self.encoders.items()):
                 if wrapped_encoder.encoder == encoder:
                     selected_encoder_id = id
                     selected_encoder_wrapper = wrapped_encoder
