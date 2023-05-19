@@ -112,13 +112,6 @@ class CameraController:
                     e.encoder.encode(self.picam2.stream_map[e.stream_type], request)
             request.release()
 
-    def _start_encoding_thread(self, encoder_wrapper: _EncoderWrapper):
-        if encoder_wrapper.encoder._running:
-            logger.info(f"Encoding thread '{encoder_wrapper.name}' already running")
-        else:
-            encoder_wrapper.encoder.start()
-            logger.info(f"Started encoding thread '{encoder_wrapper.name}'")
-
     def add_encoder(self, encoder: Encoder, name="", stream_type="main") -> str:
         id = self.random_id()
         self.encoders[id] = _EncoderWrapper(
