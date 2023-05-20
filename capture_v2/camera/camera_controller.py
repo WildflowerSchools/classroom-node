@@ -66,12 +66,6 @@ class CameraController:
     def start_camera(self):
         logger.info("Starting camera system...")
         self.picam2.start()
-        self.capture_start_in_monotonic_seconds = (
-            self.picam2.capture_metadata()["SensorTimestamp"] / 1e9
-        )
-        logger.info(
-            f"Started camera system at monotonic time (in seconds) '{self.capture_start_in_monotonic_seconds}'"
-        )
 
     def stop_camera(self):
         self.picam2.stop()
@@ -109,7 +103,24 @@ class CameraController:
 
             for _, e in list(self.encoders.items()):
                 if e.encoder._running:
-                    e.encoder.encode(self.picam2.stream_map[e.stream_type], request)
+                    stream = self.picam2.stream_map[e.stream_type]
+
+                    if e.encoder.firsttimestamp is None:
+                        fb = request.request.buffers[stream]
+                        encoder_start_in_monotonic_seconds = int(fb.metadata.timestamp / 1e9)
+                        
+                        if hasattr(
+                            e.encoder.output, "set_encoder_monotonic_start_time"
+                        ):
+                            e.encoder.output.set_encoder_monotonic_start_time(
+                                encoder_start_in_monotonic_seconds
+                            )
+                        
+                        logger.info(
+                            f"Started encoder '{e.name}' at monotonic time (in seconds) '{encoder_start_in_monotonic_seconds}'"
+                        )
+
+                    e.encoder.encode(stream, request)
             request.release()
 
     def add_encoder(self, encoder: Encoder, name="", stream_type="main") -> str:
@@ -180,13 +191,6 @@ class CameraController:
                 f"Encoder ID '{selected_encoder_wrapper.name}' is already running"
             )
             return
-
-        if hasattr(
-            selected_encoder_wrapper.encoder.output, "set_camera_monotonic_start_time"
-        ):
-            selected_encoder_wrapper.encoder.output.set_camera_monotonic_start_time(
-                self.capture_start_in_monotonic_seconds
-            )
 
         streams = self.picam2.camera_configuration()
         (

@@ -18,9 +18,6 @@ from capture_v2.log import logger
 class CameraOutputSegmenter(Output):
     def __init__(
         self,
-        # start_datetime: datetime,
-        # end_datetime: datetime = None,
-        # stop_recording_when_end_datetime_eclipsed: bool = True,
         clip_duration: int = 10,  # in seconds
         frame_rate: int = 10,
         pts=None,
@@ -52,7 +49,7 @@ class CameraOutputSegmenter(Output):
         self._current_clip_start_datetime: Optional[datetime] = None
 
         self.clip_duration = clip_duration
-        self.camera_monotonic_start_time_in_seconds: Optional[datetime] = None
+        self.encoder_monotonic_start_time_in_seconds: Optional[datetime] = None
 
         self.current_clip_frame_count = 0
 
@@ -310,19 +307,12 @@ class CameraOutputSegmenter(Output):
         self.current_clip_start_datetime = self.current_clip_end_datetime
         self.current_clip_frame_count = 0
 
-    def set_camera_monotonic_start_time(self, camera_monotonic_start_time):
-        self.camera_monotonic_start_time_in_seconds = camera_monotonic_start_time
+    def set_encoder_monotonic_start_time(self, encoder_monotonic_start_time):
+        self.encoder_monotonic_start_time_in_seconds = encoder_monotonic_start_time
 
     def outputframe(self, frame, keyframe=True, timestamp=None):
         if not self.recording:
             return
-
-        if self.is_initial_capture_loop_pass:
-            self.capture_start_monotonic_time_in_seconds = time.clock_gettime(
-                time.CLOCK_MONOTONIC
-            )
-            self.initial_frame_timestamp_in_seconds_from_camera_init = timestamp / 1e6
-            self.is_initial_capture_loop_pass = False
 
         output_processed_timestamp = datetime.now()
         self.frames_handled += 1
@@ -332,7 +322,7 @@ class CameraOutputSegmenter(Output):
             frame_timestamp_in_seconds_from_camera_init = timestamp / 1e6
 
         image_timestamp = self.system_monotonic_datetime_start + timedelta(
-            seconds=self.camera_monotonic_start_time_in_seconds
+            seconds=self.encoder_monotonic_start_time_in_seconds
             + frame_timestamp_in_seconds_from_camera_init
         )
 
@@ -378,8 +368,16 @@ class CameraOutputSegmenter(Output):
                 }
                 self.segments[current_filename_no_format] = segment
 
+        if self.is_initial_capture_loop_pass:
+            self.capture_start_monotonic_time_in_seconds = time.clock_gettime(
+                time.CLOCK_MONOTONIC
+            )
+            self.initial_frame_timestamp_in_seconds_from_camera_init = timestamp / 1e6
+        
         log_message = f"Frames Handled: {self.frames_handled} | Frames Captured: {self.frames_captured} | Frames in Current Clip: {self.current_clip_frame_count} | Include: {valid_time} | Current Time: {output_processed_timestamp.strftime('%H:%M:%S.%f')[:-3]} | Frame Inferred Timestamp: {image_timestamp.strftime('%H:%M:%S.%f')[:-3]} | Frame Processing Delay: {(output_processed_timestamp - image_timestamp).total_seconds()} | Frame Seconds from Camera Start: {frame_timestamp_in_seconds_from_camera_init} | System Time Progression Since Capture Start {(time.clock_gettime(time.CLOCK_MONOTONIC) - self.capture_start_monotonic_time_in_seconds):.3f} | Frame Time Progression Since Capture Start {(frame_timestamp_in_seconds_from_camera_init - self.initial_frame_timestamp_in_seconds_from_camera_init):.3f} | Keyframe: {keyframe} | Clip Start {self.current_clip_start_datetime} |  Clip End {self.current_clip_end_datetime} | Buffer Size {len(self.frame_buffer)}"
         if logger.level == logging.DEBUG:
             logger.debug(log_message)
-        elif self.frames_handled == 1 or (self.frames_handled % 1000) == 0:
+        elif self.is_initial_capture_loop_pass or self.frames_handled == 1 or (self.frames_handled % 1000) == 0:
             logger.info(log_message)
+        
+        self.is_initial_capture_loop_pass = False
