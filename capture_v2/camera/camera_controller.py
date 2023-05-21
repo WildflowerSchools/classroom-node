@@ -107,7 +107,7 @@ class CameraController:
 
                     if e.encoder.firsttimestamp is None:
                         fb = request.request.buffers[stream]
-                        encoder_start_in_monotonic_seconds = int(fb.metadata.timestamp / 1e9)
+                        encoder_start_in_monotonic_seconds = fb.metadata.timestamp / 1e9
                         
                         if hasattr(
                             e.encoder.output, "set_encoder_monotonic_start_time"

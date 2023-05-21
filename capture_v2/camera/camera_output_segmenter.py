@@ -49,7 +49,7 @@ class CameraOutputSegmenter(Output):
         self._current_clip_start_datetime: Optional[datetime] = None
 
         self.clip_duration = clip_duration
-        self.encoder_monotonic_start_time_in_seconds: Optional[datetime] = None
+        self.encoder_monotonic_start_time_in_seconds: Optional[float] = None
 
         self.current_clip_frame_count = 0
 
