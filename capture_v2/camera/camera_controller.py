@@ -188,7 +188,7 @@ class CameraController:
 
         if selected_encoder_wrapper.encoder._running:
             logger.warning(
-                f"Encoder ID '{selected_encoder_wrapper.name}' is already running"
+                f"Encoder '{selected_encoder_wrapper.name}' is already running"
             )
             return
 
@@ -211,6 +211,7 @@ class CameraController:
         )  # default to high bitrate if a bitrate wasn't supplied when initializing the encoder
 
         selected_encoder_wrapper.encoder.start()
+        logger.info(f"Started encoder '{selected_encoder_wrapper.name}'")
 
     def stop_encoder(self, encoder_id: str = None, encoder: Encoder = None):
         selected_encoder_id, selected_encoder_wrapper = self.get_wrapped_encoder(

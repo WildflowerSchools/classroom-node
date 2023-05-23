@@ -104,6 +104,7 @@ class CameraOutputSegmenter(Output):
             self.is_initial_capture_loop_pass = True
 
         super().start()
+        logger.info(f"Camera output segmenter started, recording status is: {self.recording}")
 
     def stop(self, wait=True):
         logger.info("Attempting to stop camera output segmenter processing...")
@@ -312,6 +313,7 @@ class CameraOutputSegmenter(Output):
 
     def outputframe(self, frame, keyframe=True, timestamp=None):
         if not self.recording:
+            logger.warning("Attempting to output frame to the output segmenter, but the output segmenter is not recording")
             return
 
         output_processed_timestamp = datetime.now()
