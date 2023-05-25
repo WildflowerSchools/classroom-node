@@ -192,17 +192,13 @@ class CameraController:
             )
             return
 
-        streams = self.picam2.camera_configuration()
+        stream_configuration = self.picam2.camera_configuration()[selected_encoder_wrapper.stream_type]
         (
             selected_encoder_wrapper.encoder.width,
             selected_encoder_wrapper.encoder.height,
-        ) = streams[selected_encoder_wrapper.stream_type]["size"]
-        selected_encoder_wrapper.encoder.format = streams[
-            selected_encoder_wrapper.stream_type
-        ]["format"]
-        selected_encoder_wrapper.encoder.stride = streams[
-            selected_encoder_wrapper.stream_type
-        ]["stride"]
+        ) = stream_configuration["size"]
+        selected_encoder_wrapper.encoder.format = stream_configuration["format"]
+        selected_encoder_wrapper.encoder.stride = stream_configuration["stride"]
         min_frame_duration = self.picam2.camera_ctrl_info["FrameDurationLimits"][1].min
         min_frame_duration = max(min_frame_duration, 33333)
         selected_encoder_wrapper.encoder.framerate = 1000000 / min_frame_duration
