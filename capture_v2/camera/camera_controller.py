@@ -118,12 +118,18 @@ class CameraController:
                     else:
                         encoder_outputs = [e.encoder.output]
                     for o in encoder_outputs:
-                        encoder_output_status.append(f"Handler Class: '{type(o).__name__}' - Handler Recording: '{o.recording}'")
-                            
-                    encoder_details.append(f"Encoder Name: '{encoder_name}' Encoder Running: '{encoder_running}' Encoder Output Handler(s): {encoder_output_status}")
+                        encoder_output_status.append(
+                            f"Handler Class: '{type(o).__name__}' - Handler Recording: '{o.recording}'"
+                        )
+
+                    encoder_details.append(
+                        f"Encoder Name: '{encoder_name}' Encoder Running: '{encoder_running}' Encoder Output Handler(s): {encoder_output_status}"
+                    )
 
                 encoder_details_with_newlines = "\n".join(encoder_details)
-                logger.info(f"Capture loop status update: captured {ii} frames, Encoders: \n{encoder_details_with_newlines}")
+                logger.info(
+                    f"Capture loop status update: captured {ii} frames, Encoders: \n{encoder_details_with_newlines}"
+                )
 
             for _, e in list(self.encoders.items()):
                 if e.encoder._running:
@@ -132,14 +138,14 @@ class CameraController:
                     if e.encoder.firsttimestamp is None:
                         fb = request.request.buffers[stream]
                         encoder_start_in_monotonic_seconds = fb.metadata.timestamp / 1e9
-                        
+
                         if hasattr(
                             e.encoder.output, "set_encoder_monotonic_start_time"
                         ):
                             e.encoder.output.set_encoder_monotonic_start_time(
                                 encoder_start_in_monotonic_seconds
                             )
-                        
+
                         logger.info(
                             f"Started encoder '{e.name}' at monotonic time (in seconds) '{encoder_start_in_monotonic_seconds}'"
                         )
@@ -216,7 +222,9 @@ class CameraController:
             )
             return
 
-        stream_configuration = self.picam2.camera_configuration()[selected_encoder_wrapper.stream_type]
+        stream_configuration = self.picam2.camera_configuration()[
+            selected_encoder_wrapper.stream_type
+        ]
         (
             selected_encoder_wrapper.encoder.width,
             selected_encoder_wrapper.encoder.height,
