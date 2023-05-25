@@ -38,7 +38,7 @@ def main():
         camera_controller.add_encoder(
             encoder=mjpeg_lo_res_encoder,
             name="LoRes MJPEG Encoder - For Streaming HTTP Server",
-            stream_type="main",
+            stream_type="lores",
         )
         # We start the camera with knowledge of the Lores encoder for the HTTP streaming only
         # Later, we add the CameraOutputSegmenter encoder and leave it up to the Scheduler to turn on/off

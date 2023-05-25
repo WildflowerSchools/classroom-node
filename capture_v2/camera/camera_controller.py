@@ -98,8 +98,32 @@ class CameraController:
             self.start_encoder(encoder_id=id)
 
     def _start_capture_read(self):
+        ii = 0
+
         while not self.stop_event.is_set():
+            ii += 1
             request = self.picam2.capture_request()
+
+            # Every 1000 frames we log details about the encoders and their status
+            if ii == 1 or ii % 1000 == 0:
+                encoder_details = []
+                for e in list(self.encoders.values()):
+                    encoder_name = e.name
+                    encoder_running = e.encoder._running
+
+                    encoder_output_status = []
+                    encoder_outputs = []
+                    if type(e.encoder.output) is list:
+                        encoder_outputs = e.encoder.output
+                    else:
+                        encoder_outputs = [e.encoder.output]
+                    for o in encoder_outputs:
+                        encoder_output_status.append(f"Handler Class: '{type(o).__name__}' - Handler Recording: '{o.recording}'")
+                            
+                    encoder_details.append(f"Encoder Name: '{encoder_name}' Encoder Running: '{encoder_running}' Encoder Output Handler(s): {encoder_output_status}")
+
+                encoder_details_with_newlines = "\n".join(encoder_details)
+                logger.info(f"Capture loop status update: captured {ii} frames, Encoders: \n{encoder_details_with_newlines}")
 
             for _, e in list(self.encoders.items()):
                 if e.encoder._running:
