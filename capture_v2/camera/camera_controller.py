@@ -156,7 +156,9 @@ class CameraController:
 
                         if e.encoder.firsttimestamp is None:
                             fb = request.request.buffers[stream]
-                            encoder_start_in_monotonic_seconds = fb.metadata.timestamp / 1e9
+                            encoder_start_in_monotonic_seconds = (
+                                fb.metadata.timestamp / 1e9
+                            )
 
                             if hasattr(
                                 e.encoder.output, "set_encoder_monotonic_start_time"
@@ -198,7 +200,9 @@ class CameraController:
             encoder_id=None, encoder=encoder
         )
         if selected_encoder_id is not None or selected_encoder_wrapper is not None:
-            logger.warning("Not adding Encoder, an EncoderWrapper already exists for this encoder")
+            logger.warning(
+                "Not adding Encoder, an EncoderWrapper already exists for this encoder"
+            )
             return selected_encoder_id
 
         id = self.random_id()
@@ -206,7 +210,7 @@ class CameraController:
             encoder=encoder, name=name, stream_type=stream_type
         )
         return id
-    
+
     def remove_encoder(self, encoder_id: str = None, encoder: Encoder = None):
         selected_encoder_id, selected_encoder_wrapper = self.get_wrapped_encoder(
             encoder_id=encoder_id, encoder=encoder
@@ -265,7 +269,9 @@ class CameraController:
             ) = stream_configuration["size"]
             selected_encoder_wrapper.encoder.format = stream_configuration["format"]
             selected_encoder_wrapper.encoder.stride = stream_configuration["stride"]
-            min_frame_duration = self.picam2.camera_ctrl_info["FrameDurationLimits"][1].min
+            min_frame_duration = self.picam2.camera_ctrl_info["FrameDurationLimits"][
+                1
+            ].min
             min_frame_duration = max(min_frame_duration, 33333)
             selected_encoder_wrapper.encoder.framerate = 1000000 / min_frame_duration
             selected_encoder_wrapper.encoder._setup(
