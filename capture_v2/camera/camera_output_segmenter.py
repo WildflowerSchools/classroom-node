@@ -92,7 +92,11 @@ class CameraOutputSegmenter(Output):
 
     def start(self):
         if self.buffer_thread is None:
-            self.buffer_thread = Thread(target=self.process_buffer, daemon=False)
+            self.buffer_thread = Thread(
+                target=self.process_buffer,
+                name="CameraOutputSegmenterFrameBuffer",
+                daemon=False
+            )
 
         if self.buffer_thread.is_alive():
             logger.info(
@@ -262,7 +266,9 @@ class CameraOutputSegmenter(Output):
                             return
 
                         thread = Thread(
-                            target=run_in_thread, args=(on_exit, popen_args)
+                            target=run_in_thread,
+                            name="ProcessVideoFile",
+                            args=(on_exit, popen_args)
                         )
                         thread.start()
                         return thread

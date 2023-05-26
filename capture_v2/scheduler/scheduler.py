@@ -146,7 +146,7 @@ class Scheduler:
             )
 
     def update_tasks(self):
-        logger.info("Updating tasks")
+        logger.info("Updating scheduler tasks")
         environment = self.honeycomb_client.fetch_environment_by_id(
             environment_id=self.environment_id
         )

@@ -26,11 +26,15 @@ sudo chown "$USER":"$USER" /data/capture_output
 docker run -d \
     --privileged \
     -p 8000:8000 \
-    --env POD_IP=127.0.0.1 \
+    -e MINIO_ENABLE=false \
+    -e CAMERA_V_FLIP=yes \
+    -e CAMERA_H_FLIP=yes \
+    -e HONEYCOMB_CLIENT_ID=EM2pKhXppSchfOW3v0Mp8gn9MVrFn2Mr \
+    -e HONEYCOMB_CLIENT_SECRET=<<SECRET>> \
     -v /run/udev:/run/udev:ro \
     -v /data/capture_output:/app/output \
     -v /boot:/boot \
-    wildflowerschools/classroom-node-capture-v2:v19-raspberrypi4-64
+    wildflowerschools/classroom-node-capture-v2:v43-raspberrypi4-64
 ```
 
 Run Minio
@@ -51,6 +55,28 @@ Navigate to `http://<<RASPERBERRY PI IP ADDRESS>>:8000/stream.mjpg` to see a liv
 
 By default, 10 second camera snippets in mp4 format will be written to `/data/capture_output`
 
+
+5. Build and run container using local repo
+
+```
+docker build -f ./capture_v2/deployment/pi4-64.dockerfile -t wildflowerschools/classroom-node-capture-v2:local .
+```
+
+```
+docker run \
+    --privileged \
+    --rm \
+    -p 8000:8000 \
+    -e MINIO_ENABLE=false \
+    -e CAMERA_V_FLIP=yes \
+    -e CAMERA_H_FLIP=yes \
+    -e VIDEO_CLIP_OUTPUT_DIR=/app/out \
+    -e HONEYCOMB_CLIENT_ID=EM2pKhXppSchfOW3v0Mp8gn9MVrFn2Mr \
+    -e HONEYCOMB_CLIENT_SECRET=<<SECRET>> \
+    --mount 'type=bind,src=/run/udev,dst=/run/udev,readonly' \
+    --mount 'type=bind,src=/boot,dst=/boot,readonly' \
+    wildflowerschools/classroom-node-capture-v2:local
+```
 
 ## Run on Pi Host
 
@@ -101,3 +127,5 @@ python -m capture_v2
 Navigate to `http://<<RASPERBERRY PI IP ADDRESS>>:8000/stream.mjpg` to see a live MJPEG stream of the camera
 
 By default, 10 second camera snippets in mp4 format will be written to `./output`
+
+###
