@@ -94,7 +94,7 @@ class CameraController:
 
         self.capture_reading_thread = threading.Thread(
             target=self._start_capture_read,
-            name='CaptureReadLoop',
+            name="CaptureReadLoop",
             daemon=False,
         )
         self.capture_reading_thread.start()
@@ -111,7 +111,7 @@ class CameraController:
 
         while not self.stop_event.is_set():
             ii += 1
-            
+
             if ii == 1:
                 logger.info("Started the capture read loop")
 
@@ -149,7 +149,7 @@ class CameraController:
                 for _, e in list(self.encoders.items()):
                     if not e.encoder._running:
                         continue
-                    
+
                     stream = self.picam2.stream_map[e.stream_type]
 
                     if e.encoder.firsttimestamp is None:
@@ -230,7 +230,7 @@ class CameraController:
         )
         if selected_encoder_id is None or selected_encoder_wrapper is None:
             return
-        
+
         logger.info(f"Starting encoder '{selected_encoder_wrapper.name}'...")
 
         if selected_encoder_wrapper.encoder is None:

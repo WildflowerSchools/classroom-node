@@ -114,9 +114,7 @@ class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
         logger.info("Starting http server...")
         if background:
             self.server_thread = threading.Thread(
-                target=self._start_thread,
-                name='MJPEGStreamingServer',
-                daemon=False
+                target=self._start_thread, name="MJPEGStreamingServer", daemon=False
             )
             self.server_thread.start()
         else:
