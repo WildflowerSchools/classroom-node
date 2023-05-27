@@ -32,7 +32,7 @@ class LogConfig(BaseModel):
         },
     }
     loggers = {
-        LOGGER_NAME: {"handlers": ["default"], "level": LOG_LEVEL},
+        LOGGER_NAME: {"handlers": ["default"], "level": LOG_LEVEL, "propagate": False},
     }
 
 
