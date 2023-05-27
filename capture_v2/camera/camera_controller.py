@@ -217,7 +217,7 @@ class CameraController:
                 encoder=encoder, name=name, stream_type=stream_type
             )
             return id
-
+        
     def remove_encoder(self, encoder_id: str = None, encoder: Encoder = None):
         with self.encoders_lock:
             selected_encoder_id, selected_encoder_wrapper = self.get_wrapped_encoder(
