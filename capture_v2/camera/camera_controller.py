@@ -1,6 +1,7 @@
 import random
 import string
 import threading
+import time
 from typing import Optional, Union
 
 from libcamera import Transform, controls
@@ -16,7 +17,7 @@ class _EncoderWrapper:
         self.encoder: Encoder = encoder
         self.name: str = name
         self.stream_type: str = stream_type
-        self.lock: threading.Lock = threading.Lock()
+        self.stopping: bool = True
 
 
 class EncoderError(Exception):
@@ -153,30 +154,29 @@ class CameraController:
                     request = self.picam2.capture_request()
 
                     for _, e in self.encoders.items():
-                        with e.lock:
-                            if not e.encoder._running:
-                                continue
+                        if not e.encoder._running or e.stopping:
+                            continue
 
-                            stream = self.picam2.stream_map[e.stream_type]
+                        stream = self.picam2.stream_map[e.stream_type]
 
-                            if e.encoder.firsttimestamp is None:
-                                fb = request.request.buffers[stream]
-                                encoder_start_in_monotonic_seconds = (
-                                    fb.metadata.timestamp / 1e9
+                        if e.encoder.firsttimestamp is None:
+                            fb = request.request.buffers[stream]
+                            encoder_start_in_monotonic_seconds = (
+                                fb.metadata.timestamp / 1e9
+                            )
+
+                            if hasattr(
+                                e.encoder.output, "set_encoder_monotonic_start_time"
+                            ):
+                                e.encoder.output.set_encoder_monotonic_start_time(
+                                    encoder_start_in_monotonic_seconds
                                 )
 
-                                if hasattr(
-                                    e.encoder.output, "set_encoder_monotonic_start_time"
-                                ):
-                                    e.encoder.output.set_encoder_monotonic_start_time(
-                                        encoder_start_in_monotonic_seconds
-                                    )
+                            logger.info(
+                                f"Started encoder '{e.name}' at monotonic time (in seconds) '{encoder_start_in_monotonic_seconds}'"
+                            )
 
-                                logger.info(
-                                    f"Started encoder '{e.name}' at monotonic time (in seconds) '{encoder_start_in_monotonic_seconds}'"
-                                )
-
-                            e.encoder.encode(stream, request)
+                        e.encoder.encode(stream, request)
                 finally:
                     if request is not None:
                         request.release()
@@ -244,8 +244,7 @@ class CameraController:
             if selected_encoder_id is None or selected_encoder_wrapper is None:
                 return
 
-            with selected_encoder_wrapper.lock:
-                selected_encoder_wrapper.encoder.output = output
+            selected_encoder_wrapper.encoder.output = output
 
     def start_encoder(self, encoder_id: str = None, encoder: Encoder = None):
         selected_encoder_id, selected_encoder_wrapper = self.get_wrapped_encoder(
@@ -256,39 +255,40 @@ class CameraController:
 
         logger.info(f"Starting encoder '{selected_encoder_wrapper.name}'...")
 
-        with selected_encoder_wrapper.lock:
-            if selected_encoder_wrapper.encoder is None:
-                self.stop_encoder(encoder_id=encoder_id, encoder=encoder)
-                err = f"Unable to start encoder '{selected_encoder_wrapper.name}', the encoder object itself is set to None"
-                logger.error(err)
-                raise EncoderError(err)
+        if selected_encoder_wrapper.encoder is None:
+            self.stop_encoder(encoder_id=encoder_id, encoder=encoder)
+            err = f"Unable to start encoder '{selected_encoder_wrapper.name}', the encoder object itself is set to None"
+            logger.error(err)
+            raise EncoderError(err)
 
-            if selected_encoder_wrapper.encoder._running:
-                logger.warning(
-                    f"Encoder '{selected_encoder_wrapper.name}' is already running"
-                )
-                return
+        if selected_encoder_wrapper.encoder._running:
+            selected_encoder_wrapper.stopping = False
+            logger.warning(
+                f"Encoder '{selected_encoder_wrapper.name}' is already running"
+            )
+            return
 
-            stream_configuration = self.picam2.camera_configuration()[
-                selected_encoder_wrapper.stream_type
-            ]
-            (
-                selected_encoder_wrapper.encoder.width,
-                selected_encoder_wrapper.encoder.height,
-            ) = stream_configuration["size"]
-            selected_encoder_wrapper.encoder.format = stream_configuration["format"]
-            selected_encoder_wrapper.encoder.stride = stream_configuration["stride"]
-            min_frame_duration = self.picam2.camera_ctrl_info["FrameDurationLimits"][
-                1
-            ].min
-            min_frame_duration = max(min_frame_duration, 33333)
-            selected_encoder_wrapper.encoder.framerate = 1000000 / min_frame_duration
-            selected_encoder_wrapper.encoder._setup(
-                Quality.HIGH
-            )  # default to high bitrate if a bitrate wasn't supplied when initializing the encoder
+        stream_configuration = self.picam2.camera_configuration()[
+            selected_encoder_wrapper.stream_type
+        ]
+        (
+            selected_encoder_wrapper.encoder.width,
+            selected_encoder_wrapper.encoder.height,
+        ) = stream_configuration["size"]
+        selected_encoder_wrapper.encoder.format = stream_configuration["format"]
+        selected_encoder_wrapper.encoder.stride = stream_configuration["stride"]
+        min_frame_duration = self.picam2.camera_ctrl_info["FrameDurationLimits"][
+            1
+        ].min
+        min_frame_duration = max(min_frame_duration, 33333)
+        selected_encoder_wrapper.encoder.framerate = 1000000 / min_frame_duration
+        selected_encoder_wrapper.encoder._setup(
+            Quality.HIGH
+        )  # default to high bitrate if a bitrate wasn't supplied when initializing the encoder
 
-            selected_encoder_wrapper.encoder.start()
-            logger.info(f"Started encoder '{selected_encoder_wrapper.name}'")
+        selected_encoder_wrapper.stopping = False
+        selected_encoder_wrapper.encoder.start()
+        logger.info(f"Started encoder '{selected_encoder_wrapper.name}'")
 
     def stop_encoder(self, encoder_id: str = None, encoder: Encoder = None):
         selected_encoder_id, selected_encoder_wrapper = self.get_wrapped_encoder(
@@ -298,7 +298,13 @@ class CameraController:
             return
 
         logger.info(f"Stopping encoding thread '{selected_encoder_wrapper.name}'...")
-        with selected_encoder_wrapper.lock:
-            if selected_encoder_wrapper.encoder._running:
-                selected_encoder_wrapper.encoder.stop()
+
+        if selected_encoder_wrapper.encoder._running:
+            selected_encoder_wrapper.stopping = True
+            time.sleep(5) # Let our capture reading loop flush out any active frames
+            
+            selected_encoder_wrapper.encoder.stop()
+            
+            selected_encoder_wrapper.stopping = False
+
         logger.info(f"Stopped encoding thread '{selected_encoder_wrapper.name}'")
