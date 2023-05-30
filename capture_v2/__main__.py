@@ -74,23 +74,27 @@ def main():
             # This is bonkers, but there's a strange bug that occasionally freezes the camera if I try stopping an encoder only.
             # The issue occurs more often if the camera has been running for >20minutes.
             # To work around the bug we reboot the camera system. More specifically, we mark the encoder as stopped,
-            # stop the entire camera system, and restart the camera system. This sucks but I'm not sure how to 
+            # stop the entire camera system, and restart the camera system. This sucks but I'm not sure how to
             # prevent the camera from occasionally freezing otherwise.
             if encoder_id is None:
                 return
-            
-            _, selected_encoder_wrapper = camera_controller.get_wrapped_encoder(encoder_id=encoder_id)
+
+            _, selected_encoder_wrapper = camera_controller.get_wrapped_encoder(
+                encoder_id=encoder_id
+            )
             if selected_encoder_wrapper is None:
                 return
-            
+
             if selected_encoder_wrapper.paused:
-                logger.info(f"Not pausing encoder '{selected_encoder_wrapper.name}', it has already been paused")
+                logger.info(
+                    f"Not pausing encoder '{selected_encoder_wrapper.name}', it has already been paused"
+                )
                 return
-            
+
             camera_controller.pause_encoder(encoder_id=encoder_id)
             camera_controller.stop()
             camera_controller.start()
-        
+
         # Start the "Scheduler"
         # Scheduler is responsible for starting/stopping the CameraOutputSegmenter encoder which
         # converts camera output -> video files.
@@ -103,7 +107,7 @@ def main():
             during_class_hours_kwargs={"encoder_id": encoder_capture_loop_id},
             outside_class_hours_kwargs={"encoder_id": encoder_capture_loop_id},
         )
-        capture_scheduler.start()    
+        capture_scheduler.start()
     finally:
         if server is not None:
             server.stop()

@@ -179,10 +179,10 @@ class CameraController:
                             )
 
                         e.encoder.encode(stream, request)
-                
+
                 except TimeoutError as e:
                     logger.warning("Timed out waiting for picamera2 capture_request()")
-                    
+
                 finally:
                     if request is not None:
                         request.release()
@@ -223,7 +223,7 @@ class CameraController:
                 encoder=encoder, name=name, stream_type=stream_type
             )
             return id
-        
+
     def remove_encoder(self, encoder_id: str = None, encoder: Encoder = None):
         with self.encoders_lock:
             selected_encoder_id, selected_encoder_wrapper = self.get_wrapped_encoder(
@@ -283,9 +283,7 @@ class CameraController:
         ) = stream_configuration["size"]
         selected_encoder_wrapper.encoder.format = stream_configuration["format"]
         selected_encoder_wrapper.encoder.stride = stream_configuration["stride"]
-        min_frame_duration = self.picam2.camera_ctrl_info["FrameDurationLimits"][
-            1
-        ].min
+        min_frame_duration = self.picam2.camera_ctrl_info["FrameDurationLimits"][1].min
         min_frame_duration = max(min_frame_duration, 33333)
         selected_encoder_wrapper.encoder.framerate = 1000000 / min_frame_duration
         selected_encoder_wrapper.encoder._setup(
@@ -306,15 +304,15 @@ class CameraController:
         logger.info(f"Stopping encoding thread '{selected_encoder_wrapper.name}'...")
 
         if selected_encoder_wrapper.encoder._running:
-            #time.sleep(5) # Let our capture reading loop flush out any active frames
-            
+            # time.sleep(5) # Let our capture reading loop flush out any active frames
+
             selected_encoder_wrapper.encoder.stop()
 
         logger.info(f"Stopped encoding thread '{selected_encoder_wrapper.name}'")
 
     def pause_encoder(self, encoder_id: str = None, encoder: Encoder = None):
         """
-        A paused encoder won't start back up if the camera system is rebooted. The only way to 
+        A paused encoder won't start back up if the camera system is rebooted. The only way to
         get a paused encoder to start is to explicity call start_encoder
         """
         selected_encoder_id, selected_encoder_wrapper = self.get_wrapped_encoder(
@@ -322,7 +320,6 @@ class CameraController:
         )
         if selected_encoder_id is None or selected_encoder_wrapper is None:
             return
-        
+
         self.stop_encoder(encoder_id=encoder_id, encoder=encoder)
         selected_encoder_wrapper.paused = True
-        
