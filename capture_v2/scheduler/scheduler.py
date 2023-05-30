@@ -35,7 +35,7 @@ class Scheduler:
         self.coordinating_scheduler.add_job(
             self.update_tasks,
             trigger="interval",
-            minutes=10,
+            minutes=1,
             id="coordinating_scheduler",
             next_run_time=datetime.now(dateutil.tz.tzutc()),
             misfire_grace_time=5,

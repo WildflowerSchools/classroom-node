@@ -70,13 +70,24 @@ def main():
 
         server.start(background=True)
 
-        def stop_encoder_and_restart_camera():
+        def stop_encoder_and_restart_camera(encoder_id: str = None):
             # This is bonkers, but there's a strange bug that occasionally freezes the camera if I try stopping an encoder only.
             # The issue occurs more often if the camera has been running for >20minutes.
             # To work around the bug we reboot the camera system. More specifically, we mark the encoder as stopped,
             # stop the entire camera system, and restart the camera system. This sucks but I'm not sure how to 
             # prevent the camera from occasionally freezing otherwise.
-            camera_controller.pause_encoder(encoder_id=encoder_capture_loop_id)
+            if encoder_id is None:
+                return
+            
+            _, selected_encoder_wrapper = camera_controller.get_wrapped_encoder(encoder_id=encoder_id)
+            if selected_encoder_wrapper is None:
+                return
+            
+            if selected_encoder_wrapper.paused:
+                logger.info(f"Not pausing encoder '{selected_encoder_wrapper.name}', it has already been paused")
+                return
+            
+            camera_controller.pause_encoder(encoder_id=encoder_id)
             camera_controller.stop()
             camera_controller.start()
         
@@ -88,7 +99,7 @@ def main():
         capture_scheduler.add_class_hours_tasks(
             name="capture",
             during_class_hours_callback=camera_controller.start_encoder,
-            outside_class_hours_callback=camera_controller.stop_encoder,
+            outside_class_hours_callback=stop_encoder_and_restart_camera,
             during_class_hours_kwargs={"encoder_id": encoder_capture_loop_id},
             outside_class_hours_kwargs={"encoder_id": encoder_capture_loop_id},
         )
