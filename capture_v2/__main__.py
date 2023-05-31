@@ -41,6 +41,10 @@ def main():
             stream_type="lores",
         )
 
+        # We start the camera with knowledge of the Lores encoder for the HTTP streaming only
+        # Later, we add the CameraOutputSegmenter encoder and leave it up to the Scheduler to turn on/off
+        camera_controller.start()
+
         # Create/add our fancy CameraOutputSegmenter encoder for turning the stream into video files
         custom_output = CameraOutputSegmenter(
             clip_duration=settings.VIDEO_CLIP_DURATION,
@@ -56,10 +60,6 @@ def main():
             name="HiRes MJPEG Encoder - For Capture Loop",
             stream_type="main",
         )
-        
-        # We start the camera with knowledge of the Lores encoder for the HTTP streaming only
-        # Later, we add the CameraOutputSegmenter encoder and leave it up to the Scheduler to turn on/off
-        camera_controller.start()
 
         # Start Minio if the MINIO_ENABLE env var was set
         if settings.MINIO_ENABLE:
@@ -70,7 +70,14 @@ def main():
             uploader.start()
 
         server.start(background=True)
-        
+
+        def start_encoder_and_encoder_outputs(encoder_id):
+            """
+            Make sure the encoder and the encoder outputs are running
+            """
+            camera_controller.start_encoder(encoder_id=encoder_id)
+            camera_controller.start_encoder_outputs(encoder_id=encoder_id)
+
         # Start the "Scheduler"
         # Scheduler is responsible for starting/stopping the CameraOutputSegmenter encoder which
         # converts camera output -> video files.
@@ -78,7 +85,7 @@ def main():
         capture_scheduler = Scheduler(environment_id=settings.CLASSROOM_ENVIRONMENT_ID)
         capture_scheduler.add_class_hours_tasks(
             name="capture",
-            during_class_hours_callback=camera_controller.start_encoder_outputs,
+            during_class_hours_callback=start_encoder_and_encoder_outputs,
             outside_class_hours_callback=camera_controller.stop_encoder_outputs,
             during_class_hours_kwargs={"encoder_id": encoder_capture_loop_id},
             outside_class_hours_kwargs={"encoder_id": encoder_capture_loop_id},

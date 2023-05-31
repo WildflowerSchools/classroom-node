@@ -109,7 +109,7 @@ class CameraOutputSegmenter(Output):
 
         super().start()
         logger.info(
-            f"Camera output segmenter started, recording status is: {self.recording}"
+            f"Camera output segmenter started if not already running, recording status is: {self.recording}"
         )
 
     def stop(self, wait=True):

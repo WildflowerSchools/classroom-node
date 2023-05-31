@@ -338,11 +338,11 @@ class CameraController:
         if selected_encoder_id is None or selected_encoder_wrapper is None:
             return
         
-        logger.info(f"Starting '{selected_encoder_wrapper.name}' output recordings...")
+        logger.info(f"Starting '{selected_encoder_wrapper.name}' outputters...")
         with self.encoders_lock:
             for o in selected_encoder_wrapper.outputs:
                 o.start()
-        logger.info(f"Started '{selected_encoder_wrapper.name}' output recordings")
+        logger.info(f"Started '{selected_encoder_wrapper.name}' outputters")
 
     def stop_encoder_outputs(self, encoder_id: str = None, encoder: Encoder = None):
         selected_encoder_id, selected_encoder_wrapper = self.get_wrapped_encoder(
@@ -351,8 +351,8 @@ class CameraController:
         if selected_encoder_id is None or selected_encoder_wrapper is None:
             return
         
-        logger.info(f"Stopping '{selected_encoder_wrapper.name}' output recordings...")
+        logger.info(f"Stopping '{selected_encoder_wrapper.name}' outputters...")
         with self.encoders_lock:
             for o in selected_encoder_wrapper.outputs:
                 o.stop()
-        logger.info(f"Stopped '{selected_encoder_wrapper.name}' output recordings")
+        logger.info(f"Stopped '{selected_encoder_wrapper.name}' outputters")
