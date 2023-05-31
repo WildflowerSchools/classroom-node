@@ -1,14 +1,12 @@
 import random
 import string
 import threading
-import time
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 from libcamera import Transform, controls
 from picamera2 import Picamera2
 from picamera2.encoders import Encoder, Quality
 from picamera2.outputs import Output
-from wrapt_timeout_decorator import timeout
 
 from capture_v2.log import logger
 
@@ -19,6 +17,18 @@ class _EncoderWrapper:
         self.name: str = name
         self.stream_type: str = stream_type
         self.paused: bool = False
+
+    @property
+    def outputs(self) -> List[Output]:
+        if type(self.encoder.output) is list:
+            encoder_outputs = self.encoder.output
+        else:
+            encoder_outputs = [self.encoder.output]
+        
+        return encoder_outputs
+    
+    def has_any_recording_outputs(self) -> bool:
+        return any(map(lambda o: o.recording, self.outputs))
 
 
 class EncoderError(Exception):
@@ -132,12 +142,7 @@ class CameraController:
                         encoder_running = e.encoder._running
 
                         encoder_output_status = []
-                        encoder_outputs = []
-                        if type(e.encoder.output) is list:
-                            encoder_outputs = e.encoder.output
-                        else:
-                            encoder_outputs = [e.encoder.output]
-                        for o in encoder_outputs:
+                        for o in e.outputs:
                             encoder_output_status.append(
                                 f"Handler Class: '{type(o).__name__}' - Handler Recording: '{o.recording}'"
                             )
@@ -153,7 +158,7 @@ class CameraController:
 
                 request = None
                 try:
-                    request = timeout(dec_timeout=5)(self.picam2.capture_request())
+                    request = self.picam2.capture_request()
 
                     for _, e in self.encoders.items():
                         if not e.encoder._running or e.paused:
@@ -178,11 +183,8 @@ class CameraController:
                                 f"Started encoder '{e.name}' at monotonic time (in seconds) '{encoder_start_in_monotonic_seconds}'"
                             )
 
-                        e.encoder.encode(stream, request)
-                
-                except TimeoutError as e:
-                    logger.warning("Timed out waiting for picamera2 capture_request()")
-                    
+                        if e.has_any_recording_outputs():
+                            e.encoder.encode(stream, request)
                 finally:
                     if request is not None:
                         request.release()
@@ -297,6 +299,12 @@ class CameraController:
         logger.info(f"Started encoder '{selected_encoder_wrapper.name}'")
 
     def stop_encoder(self, encoder_id: str = None, encoder: Encoder = None):
+        """
+        Be careful stopping encoders. The picamera2 library could end up hanging when
+        calling 'self.picam2.capture_request()'. It's not clear why this happens, but
+        be warned because there isn't a way to recover when the system locks on the
+        capture_request call.
+        """
         selected_encoder_id, selected_encoder_wrapper = self.get_wrapped_encoder(
             encoder_id=encoder_id, encoder=encoder
         )
@@ -306,8 +314,6 @@ class CameraController:
         logger.info(f"Stopping encoding thread '{selected_encoder_wrapper.name}'...")
 
         if selected_encoder_wrapper.encoder._running:
-            #time.sleep(5) # Let our capture reading loop flush out any active frames
-            
             selected_encoder_wrapper.encoder.stop()
 
         logger.info(f"Stopped encoding thread '{selected_encoder_wrapper.name}'")
@@ -324,5 +330,31 @@ class CameraController:
             return
         
         self.stop_encoder(encoder_id=encoder_id, encoder=encoder)
+
         selected_encoder_wrapper.paused = True
+    
+    def start_encoder_outputs(self, encoder_id: str = None, encoder: Encoder = None):
+        selected_encoder_id, selected_encoder_wrapper = self.get_wrapped_encoder(
+            encoder_id=encoder_id, encoder=encoder
+        )
+        if selected_encoder_id is None or selected_encoder_wrapper is None:
+            return
         
+        logger.info(f"Starting '{selected_encoder_wrapper.name}' output recordings...")
+        with self.encoders_lock:
+            for o in selected_encoder_wrapper.outputs:
+                o.start()
+        logger.info(f"Started '{selected_encoder_wrapper.name}' output recordings")
+
+    def stop_encoder_outputs(self, encoder_id: str = None, encoder: Encoder = None):
+        selected_encoder_id, selected_encoder_wrapper = self.get_wrapped_encoder(
+            encoder_id=encoder_id, encoder=encoder
+        )
+        if selected_encoder_id is None or selected_encoder_wrapper is None:
+            return
+        
+        logger.info(f"Stopping '{selected_encoder_wrapper.name}' output recordings...")
+        with self.encoders_lock:
+            for o in selected_encoder_wrapper.outputs:
+                o.stop()
+        logger.info(f"Stopped '{selected_encoder_wrapper.name}' output recordings")
