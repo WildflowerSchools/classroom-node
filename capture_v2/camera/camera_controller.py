@@ -24,9 +24,9 @@ class _EncoderWrapper:
             encoder_outputs = self.encoder.output
         else:
             encoder_outputs = [self.encoder.output]
-        
+
         return encoder_outputs
-    
+
     def has_any_recording_outputs(self) -> bool:
         return any(map(lambda o: o.recording, self.outputs))
 
@@ -330,14 +330,14 @@ class CameraController:
         self.stop_encoder(encoder_id=encoder_id, encoder=encoder)
 
         selected_encoder_wrapper.paused = True
-    
+
     def start_encoder_outputs(self, encoder_id: str = None, encoder: Encoder = None):
         selected_encoder_id, selected_encoder_wrapper = self.get_wrapped_encoder(
             encoder_id=encoder_id, encoder=encoder
         )
         if selected_encoder_id is None or selected_encoder_wrapper is None:
             return
-        
+
         logger.info(f"Starting '{selected_encoder_wrapper.name}' outputters...")
         with self.encoders_lock:
             for o in selected_encoder_wrapper.outputs:
@@ -350,7 +350,7 @@ class CameraController:
         )
         if selected_encoder_id is None or selected_encoder_wrapper is None:
             return
-        
+
         logger.info(f"Stopping '{selected_encoder_wrapper.name}' outputters...")
         with self.encoders_lock:
             for o in selected_encoder_wrapper.outputs:
