@@ -13,8 +13,9 @@ class Settings(BaseSettings):
     CAMERA_H_FLIP: bool = False
     CAMERA_V_FLIP: bool = False
 
-    SERVER_HOST: str = ""
-    SERVER_PORT: int = 8000
+    STREAMING_SERVER_ENABLE: bool = TRUE
+    STREAMING_SERVER_HOST: str = ""
+    STREAMING_SERVER_PORT: int = 8000
 
     MINIO_ENABLE: bool = False
 

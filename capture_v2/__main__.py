@@ -22,8 +22,6 @@ def main():
 
     server, camera_controller, uploader = None, None, None
     try:
-        server = StreamingServer(host=settings.SERVER_HOST, port=settings.SERVER_PORT)
-
         camera_controller = CameraController(
             main_config={"size": (1296, 972), "format": "YUV420"},
             lores_config={"size": (640, 360), "format": "YUV420"},
@@ -32,14 +30,17 @@ def main():
             vflip=settings.CAMERA_V_FLIP,
         )
 
-        # Create/add our first encoder for the HTTP Stream
-        mjpeg_lo_res_encoder = MJPEGEncoder(bitrate=18000000)
-        mjpeg_lo_res_encoder.output = FileOutput(server.streaming_output)
-        camera_controller.add_encoder(
-            encoder=mjpeg_lo_res_encoder,
-            name="LoRes MJPEG Encoder - For Streaming HTTP Server",
-            stream_type="lores",
-        )
+        if settings.STREAMING_SERVER_ENABLE:
+            server = StreamingServer(host=settings.STREAMING_SERVER_HOST, port=settings.STREAMING_SERVER_PORT)
+
+            # Create/add encoder for the HTTP Stream
+            mjpeg_lo_res_encoder = MJPEGEncoder(bitrate=18000000)
+            mjpeg_lo_res_encoder.output = FileOutput(server.streaming_output)
+            camera_controller.add_encoder(
+                encoder=mjpeg_lo_res_encoder,
+                name="LoRes MJPEG Encoder - For Streaming HTTP Server",
+                stream_type="lores",
+            )
 
         # We start the camera with knowledge of the Lores encoder for the HTTP streaming only
         # Later, we add the CameraOutputSegmenter encoder and leave it up to the Scheduler to turn on/off
