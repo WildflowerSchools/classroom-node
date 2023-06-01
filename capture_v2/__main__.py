@@ -70,7 +70,8 @@ def main():
             )
             uploader.start()
 
-        server.start(background=True)
+        if server is not None:
+            server.start(background=True)
 
         def start_encoder_and_encoder_outputs(encoder_id):
             """
