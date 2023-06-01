@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     CAMERA_H_FLIP: bool = False
     CAMERA_V_FLIP: bool = False
 
-    STREAMING_SERVER_ENABLE: bool = TRUE
+    STREAMING_SERVER_ENABLE: bool = True
     STREAMING_SERVER_HOST: str = ""
     STREAMING_SERVER_PORT: int = 8000
 
