@@ -84,15 +84,21 @@ def main():
         # Scheduler is responsible for starting/stopping the CameraOutputSegmenter encoder which
         # converts camera output -> video files.
         # It uses the classroom environment ID to fetch a classroms start/stop time
-        capture_scheduler = Scheduler(environment_id=settings.CLASSROOM_ENVIRONMENT_ID)
-        capture_scheduler.add_class_hours_tasks(
-            name="capture",
-            during_class_hours_callback=start_encoder_and_encoder_outputs,
-            outside_class_hours_callback=camera_controller.stop_encoder_outputs,
-            during_class_hours_kwargs={"encoder_id": encoder_capture_loop_id},
-            outside_class_hours_kwargs={"encoder_id": encoder_capture_loop_id},
-        )
-        capture_scheduler.start()
+        # capture_scheduler = Scheduler(environment_id=settings.CLASSROOM_ENVIRONMENT_ID)
+        # capture_scheduler.add_class_hours_tasks(
+        #     name="capture",
+        #     during_class_hours_callback=start_encoder_and_encoder_outputs,
+        #     outside_class_hours_callback=camera_controller.stop_encoder_outputs,
+        #     during_class_hours_kwargs={"encoder_id": encoder_capture_loop_id},
+        #     outside_class_hours_kwargs={"encoder_id": encoder_capture_loop_id},
+        # )
+        # capture_scheduler.start()
+
+        for ii in range(5000):
+            start_encoder_and_encoder_outputs(encoder_id=encoder_capture_loop_id)
+            time.sleep(60)
+            camera_controller.stop_encoder_outputs(encoder_id=encoder_capture_loop_id)
+            time.sleep(20)
     finally:
         if server is not None:
             server.stop()

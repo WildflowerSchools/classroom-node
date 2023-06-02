@@ -4,10 +4,11 @@ import threading
 from typing import List, Optional, Union
 
 from libcamera import Transform, controls
-from picamera2 import Picamera2
 from picamera2.encoders import Encoder, Quality
+from picamera2.job import Job
 from picamera2.outputs import Output
 
+from .wf_picamera2 import WFPicamera2
 from capture_v2.log import logger
 
 
@@ -44,7 +45,7 @@ class CameraController:
         hflip: bool = False,
         vflip: bool = False,
     ):
-        self.picam2 = Picamera2()
+        self.picam2 = WFPicamera2()
         self.picam2.options["quality"] = 95  # Highest quality available
         self.picam2.options["compress_level"] = 0  # No compression
 
@@ -108,13 +109,13 @@ class CameraController:
         logger.info("Starting camera controller...")
         self.start_camera()
 
-        self.capture_reading_thread = threading.Thread(
-            target=self._start_capture_read,
-            name="CaptureReadLoop",
-            daemon=False,
-        )
-        self.capture_reading_thread.start()
-        logger.info(f"Started capture reading thread")
+        # self.capture_reading_thread = threading.Thread(
+        #     target=self._start_capture_read,
+        #     name="CaptureReadLoop",
+        #     daemon=False,
+        # )
+        # self.capture_reading_thread.start()
+        # logger.info(f"Started capture reading thread")
 
         with self.encoders_lock:
             for id, e in list(self.encoders.items()):
@@ -133,61 +134,61 @@ class CameraController:
             if ii == 1:
                 logger.info("Started the capture read loop")
 
-            with self.encoders_lock:
-                # Every 1000 frames we log details about the encoders and their status
-                if ii == 1 or ii % 1000 == 0:
-                    encoder_details = []
-                    for e in self.encoders.values():
-                        encoder_name = e.name
-                        encoder_running = e.encoder._running
+            # with self.encoders_lock:
+            # Every 1000 frames we log details about the encoders and their status
+            if ii == 1 or ii % 1000 == 0:
+                encoder_details = []
+                for e in list(self.encoders.values()):
+                    encoder_name = e.name
+                    encoder_running = e.encoder._running
 
-                        encoder_output_status = []
-                        for o in e.outputs:
-                            encoder_output_status.append(
-                                f"Handler Class: '{type(o).__name__}' - Handler Recording: '{o.recording}'"
-                            )
-
-                        encoder_details.append(
-                            f"Encoder Name: '{encoder_name}' Encoder Running: '{encoder_running}' Encoder Output Handler(s): {encoder_output_status}"
+                    encoder_output_status = []
+                    for o in e.outputs:
+                        encoder_output_status.append(
+                            f"Handler Class: '{type(o).__name__}' - Handler Recording: '{o.recording}'"
                         )
 
-                    encoder_details_with_newlines = "\n".join(encoder_details)
-                    logger.info(
-                        f"Capture loop status update: captured {ii} frames, Encoders: \n{encoder_details_with_newlines}"
+                    encoder_details.append(
+                        f"Encoder Name: '{encoder_name}' Encoder Running: '{encoder_running}' Encoder Output Handler(s): {encoder_output_status}"
                     )
 
-                request = None
-                try:
-                    request = self.picam2.capture_request()
+                encoder_details_with_newlines = "\n".join(encoder_details)
+                logger.info(
+                    f"Capture loop status update: captured {ii} frames, Encoders: \n{encoder_details_with_newlines}"
+                )
 
-                    for _, e in self.encoders.items():
-                        if not e.encoder._running or e.paused:
-                            continue
+            request = None
+            try:
+                request = self.picam2.capture_request() # Consider adding a timeout and catching the issue. Might need to go as far as forcing a restart of the camera
 
-                        stream = self.picam2.stream_map[e.stream_type]
+                for _, e in list(self.encoders.items()):
+                    if not e.encoder._running or e.paused:
+                        continue
 
-                        if e.encoder.firsttimestamp is None:
-                            fb = request.request.buffers[stream]
-                            encoder_start_in_monotonic_seconds = (
-                                fb.metadata.timestamp / 1e9
+                    stream = self.picam2.stream_map[e.stream_type]
+
+                    if e.encoder.firsttimestamp is None:
+                        fb = request.request.buffers[stream]
+                        encoder_start_in_monotonic_seconds = (
+                            fb.metadata.timestamp / 1e9
+                        )
+
+                        if hasattr(
+                            e.encoder.output, "set_encoder_monotonic_start_time"
+                        ):
+                            e.encoder.output.set_encoder_monotonic_start_time(
+                                encoder_start_in_monotonic_seconds
                             )
 
-                            if hasattr(
-                                e.encoder.output, "set_encoder_monotonic_start_time"
-                            ):
-                                e.encoder.output.set_encoder_monotonic_start_time(
-                                    encoder_start_in_monotonic_seconds
-                                )
+                        logger.info(
+                            f"Started encoder '{e.name}' at monotonic time (in seconds) '{encoder_start_in_monotonic_seconds}'"
+                        )
 
-                            logger.info(
-                                f"Started encoder '{e.name}' at monotonic time (in seconds) '{encoder_start_in_monotonic_seconds}'"
-                            )
-
-                        if e.has_any_recording_outputs():
-                            e.encoder.encode(stream, request)
-                finally:
-                    if request is not None:
-                        request.release()
+                    if e.has_any_recording_outputs():
+                        e.encoder.encode(stream, request)
+            finally:
+                if request is not None:
+                    request.release()
 
         logger.info("Stopped the capture read loop")
 
@@ -224,6 +225,7 @@ class CameraController:
             self.encoders[id] = _EncoderWrapper(
                 encoder=encoder, name=name, stream_type=stream_type
             )
+            self.picam2.add_encoder(encoder, stream_type)
             return id
 
     def remove_encoder(self, encoder_id: str = None, encoder: Encoder = None):
@@ -237,6 +239,7 @@ class CameraController:
             self.stop_encoder(
                 encoder_id=encoder_id, encoder=selected_encoder_wrapper.encoder
             )
+            self.picam2.remove_encoder(encoder)
             self.encoders.pop(selected_encoder_id)
 
     def set_encoder_output(
