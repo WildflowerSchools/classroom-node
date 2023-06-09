@@ -169,9 +169,7 @@ class CameraController:
 
                     if e.encoder.firsttimestamp is None:
                         fb = request.request.buffers[stream]
-                        encoder_start_in_monotonic_seconds = (
-                            fb.metadata.timestamp / 1e9
-                        )
+                        encoder_start_in_monotonic_seconds = fb.metadata.timestamp / 1e9
 
                         if hasattr(
                             e.encoder.output, "set_encoder_monotonic_start_time"
@@ -287,13 +285,15 @@ class CameraController:
             ) = stream_configuration["size"]
             selected_encoder_wrapper.encoder.format = stream_configuration["format"]
             selected_encoder_wrapper.encoder.stride = stream_configuration["stride"]
-            min_frame_duration = self.picam2.camera_ctrl_info["FrameDurationLimits"][1].min
+            min_frame_duration = self.picam2.camera_ctrl_info["FrameDurationLimits"][
+                1
+            ].min
             min_frame_duration = max(min_frame_duration, 33333)
             selected_encoder_wrapper.encoder.framerate = 1000000 / min_frame_duration
             selected_encoder_wrapper.encoder._setup(
                 Quality.HIGH
             )  # default to high bitrate if a bitrate wasn't supplied when initializing the encoder
-            
+
             selected_encoder_wrapper.initialized = True
 
         selected_encoder_wrapper.paused = False

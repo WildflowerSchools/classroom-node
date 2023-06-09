@@ -31,7 +31,9 @@ def main():
         )
 
         if settings.STREAMING_SERVER_ENABLE:
-            server = StreamingServer(host=settings.STREAMING_SERVER_HOST, port=settings.STREAMING_SERVER_PORT)
+            server = StreamingServer(
+                host=settings.STREAMING_SERVER_HOST, port=settings.STREAMING_SERVER_PORT
+            )
             server.start(background=True)
 
             # Create/add encoder for the HTTP Stream

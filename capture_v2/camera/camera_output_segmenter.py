@@ -23,7 +23,7 @@ class CameraOutputSegmenter(Output):
         self,
         clip_duration: int = 10,  # in seconds
         frame_rate: int = 10,
-        gop_size: int = 10, # sets key frame frequency 
+        gop_size: int = 10,  # sets key frame frequency
         pts=None,
         staging_dir="./staging",
         output_dir="./output",
@@ -117,7 +117,7 @@ class CameraOutputSegmenter(Output):
             self.ffmpeg_thread = threading.Thread(
                 target=self.process_ffmpeg_queue,
                 name="CameraOutputSegmenterFFMpegProcessor",
-                daemon=False
+                daemon=False,
             )
             self.ffmpeg_thread.start()
 
@@ -140,7 +140,9 @@ class CameraOutputSegmenter(Output):
         self.segments = {}
 
         if keep_ffmpeg_running is False:
-            logger.info("Stopping ffmpeg processing thread, waiting for current jobs to finish...")
+            logger.info(
+                "Stopping ffmpeg processing thread, waiting for current jobs to finish..."
+            )
             self.ffmpeg_stop_when_jobs_complete_event.set()
             self.ffmpeg_thread.join()
             self.ffmpeg_thread = None
@@ -224,9 +226,11 @@ class CameraOutputSegmenter(Output):
 
                             # There cannot be duplicate PTS times, if one occurs, add a slight offset
                             while relative_pts in previous_pts:
-                                logger.info(f"Duplicate PTS value {relative_pts}, offsetting by 0.001")
+                                logger.info(
+                                    f"Duplicate PTS value {relative_pts}, offsetting by 0.001"
+                                )
                                 relative_pts += 0.001
-                            
+
                             previous_pts.append(relative_pts)
 
                             if idx == 0:
@@ -263,88 +267,102 @@ class CameraOutputSegmenter(Output):
                             f"Processing '{segment['name']}' - Converting mjpeg to mp4..."
                         )
                         # Very important: using h264_v4l2m2m for hardware acceleration
-                        cmds.append([
-                            "ffmpeg",
-                            "-f",
-                            "mjpeg",
-                            "-r",
-                            f"{self.frame_rate}",
-                            "-hide_banner",
-                            "-loglevel",
-                            "warning",
-                            "-y",
-                            "-thread_queue_size",
-                            "32",
-                            "-i",
-                            f"{segment['staging_source_filepath']}",
-                            "-pix_fmt",
-                            "yuv420p",
-                            "-b:v",
-                            "3M",
-                            "-c:v",
-                            "h264_v4l2m2m",
-                            "-g",
-                            f"{self.gop_size}",
-                            "-keyint_min",
-                            f"{self.gop_size}",
-                            "-sc_threshold",
-                            "0",
-                            "-f",
-                            "mp4",
-                            f"{segment['staging_mp4_filepath']}"
-                        ])
+                        cmds.append(
+                            [
+                                "ffmpeg",
+                                "-f",
+                                "mjpeg",
+                                "-r",
+                                f"{self.frame_rate}",
+                                "-hide_banner",
+                                "-loglevel",
+                                "warning",
+                                "-y",
+                                "-thread_queue_size",
+                                "32",
+                                "-i",
+                                f"{segment['staging_source_filepath']}",
+                                "-pix_fmt",
+                                "yuv420p",
+                                "-b:v",
+                                "3M",
+                                "-c:v",
+                                "h264_v4l2m2m",
+                                "-g",
+                                f"{self.gop_size}",
+                                "-keyint_min",
+                                f"{self.gop_size}",
+                                "-sc_threshold",
+                                "0",
+                                "-f",
+                                "mp4",
+                                f"{segment['staging_mp4_filepath']}",
+                            ]
+                        )
 
                     # Sleep because the mp4 file isn't quite ready for some reason...
                     cmds.append(["sleep", "1"])
-                    cmds.append(["mv", segment['staging_mp4_filepath'], f"{segment['staging_mp4_filepath']}.tmp"])
+                    cmds.append(
+                        [
+                            "mv",
+                            segment["staging_mp4_filepath"],
+                            f"{segment['staging_mp4_filepath']}.tmp",
+                        ]
+                    )
                     # Next step is to update the PTS timestamps. We use mp4fpsmod
-                    cmds.append([
-                        "mp4fpsmod",
-                        "-t",
-                        f"{segment['staging_pts_filepath']}",
-                        f"{segment['staging_mp4_filepath']}.tmp",
-                        "-o",
-                        f"{segment['staging_mp4_filepath']}.mp4fpsmod.tmp"
-                    ])
+                    cmds.append(
+                        [
+                            "mp4fpsmod",
+                            "-t",
+                            f"{segment['staging_pts_filepath']}",
+                            f"{segment['staging_mp4_filepath']}.tmp",
+                            "-o",
+                            f"{segment['staging_mp4_filepath']}.mp4fpsmod.tmp",
+                        ]
+                    )
                     # Now chop the final "devil" frame and output the mp4 to its final destination
-                    cmds.append([
-                        "ffmpeg",
-                        "-y",
-                        "-hide_banner",
-                        "-loglevel",
-                        "warning",
-                        "-i",
-                        f"{segment['staging_mp4_filepath']}.mp4fpsmod.tmp",
-                        "-frames:v",
-                        f"{self.clip_duration * self.frame_rate}",
-                        "-c:v",
-                        "copy",
-                        f"{segment['final_mp4_filepath']}"
-                    ])
+                    cmds.append(
+                        [
+                            "ffmpeg",
+                            "-y",
+                            "-hide_banner",
+                            "-loglevel",
+                            "warning",
+                            "-i",
+                            f"{segment['staging_mp4_filepath']}.mp4fpsmod.tmp",
+                            "-frames:v",
+                            f"{self.clip_duration * self.frame_rate}",
+                            "-c:v",
+                            "copy",
+                            f"{segment['final_mp4_filepath']}",
+                        ]
+                    )
 
                     # mkvmerge example - Note, I couldn't get mkvmerge to work with mp4s. I needed to convert it to an mkv which added an extra step
                     # cmds.append(f"mkvmerge -o {segment['mp4_filepath']} --timestamps 0:{segment['pts_filepath']} {segment['mp4_filepath']}.tmp")
                     # Finally cleanup, cleanup, everybody cleanup
-                    cmds.append([
-                        "rm",
-                        "-f",
-                        f"{segment['staging_pts_filepath']}",
-                        f"{segment['staging_mp4_filepath']}.mp4fpsmod.tmp",
-                        f"{segment['staging_mp4_filepath']}.tmp",
-                        f"{segment['staging_source_filepath']}"
-                    ])
+                    cmds.append(
+                        [
+                            "rm",
+                            "-f",
+                            f"{segment['staging_pts_filepath']}",
+                            f"{segment['staging_mp4_filepath']}.mp4fpsmod.tmp",
+                            f"{segment['staging_mp4_filepath']}.tmp",
+                            f"{segment['staging_source_filepath']}",
+                        ]
+                    )
 
                     self.ffmpeg_cmd_queue.put(
                         item={
                             "cmds": cmds,
-                            "name": segment['name'],
-                            "in_file": segment['staging_source_filepath'],
-                            "out_file": segment['final_mp4_filepath'],
+                            "name": segment["name"],
+                            "in_file": segment["staging_source_filepath"],
+                            "out_file": segment["final_mp4_filepath"],
                         },
-                        block=False
+                        block=False,
                     )
 
-                    self.segments.pop(filename_key)  
+                    self.segments.pop(filename_key)
 
         logger.info("Stopped processing buffer")
 
@@ -357,12 +375,16 @@ class CameraOutputSegmenter(Output):
                     break
 
                 continue
-            
-            try:
-                logger.info(f"Current ffmpeg job queue size (not including active job): {self.ffmpeg_cmd_queue.qsize()}")
 
-                logger.info(f"Processing '{job['name']}' - Converting mjpeg file '{job['in_file']}' to mp4 '{job['out_file']}'...")
-                for cmd in job['cmds']:
+            try:
+                logger.info(
+                    f"Current ffmpeg job queue size (not including active job): {self.ffmpeg_cmd_queue.qsize()}"
+                )
+
+                logger.info(
+                    f"Processing '{job['name']}' - Converting mjpeg file '{job['in_file']}' to mp4 '{job['out_file']}'..."
+                )
+                for cmd in job["cmds"]:
                     proc = subprocess.Popen(
                         args=cmd,
                         shell=False,
@@ -370,7 +392,9 @@ class CameraOutputSegmenter(Output):
                         preexec_fn=lambda: prctl.set_pdeathsig(signal.SIGKILL),
                     )
                     proc.wait()
-                logger.info(f"Processing '{job['name']}' - Finished converting '{job['in_file']}' file to '{job['out_file']}'")
+                logger.info(
+                    f"Processing '{job['name']}' - Finished converting '{job['in_file']}' file to '{job['out_file']}'"
+                )
             finally:
                 self.ffmpeg_cmd_queue.task_done()
 
