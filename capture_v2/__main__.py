@@ -32,6 +32,7 @@ def main():
 
         if settings.STREAMING_SERVER_ENABLE:
             server = StreamingServer(host=settings.STREAMING_SERVER_HOST, port=settings.STREAMING_SERVER_PORT)
+            server.start(background=True)
 
             # Create/add encoder for the HTTP Stream
             mjpeg_lo_res_encoder = MJPEGEncoder(bitrate=18000000)
@@ -52,7 +53,6 @@ def main():
             staging_dir=settings.VIDEO_CLIP_STAGING_DIR,
             output_dir=settings.VIDEO_CLIP_OUTPUT_DIR,
             frame_rate=settings.VIDEO_CLIP_FRAME_RATE,
-            finalize_video_in_background=settings.FINALIZE_VIDEO_IN_BACKGROUND,
         )
         mjpeg_main_res_encoder = MJPEGEncoder(bitrate=18000000)
         mjpeg_main_res_encoder.output = custom_output
@@ -70,9 +70,6 @@ def main():
             )
             uploader.start()
 
-        if server is not None:
-            server.start(background=True)
-
         def start_encoder_and_encoder_outputs(encoder_id):
             """
             Make sure the encoder and the encoder outputs are running
@@ -87,12 +84,20 @@ def main():
         capture_scheduler = Scheduler(environment_id=settings.CLASSROOM_ENVIRONMENT_ID)
         capture_scheduler.add_class_hours_tasks(
             name="capture",
-            during_class_hours_callback=start_encoder_and_encoder_outputs,
-            outside_class_hours_callback=camera_controller.stop_encoder_outputs,
+            during_class_hours_callback=camera_controller.start_encoder,
+            outside_class_hours_callback=camera_controller.stop_encoder,
             during_class_hours_kwargs={"encoder_id": encoder_capture_loop_id},
             outside_class_hours_kwargs={"encoder_id": encoder_capture_loop_id},
         )
         capture_scheduler.start()
+
+        # For easier debugging:
+        # for ii in range(1000):
+        #     # start_encoder_and_encoder_outputs(encoder_id=encoder_capture_loop_id)
+        #     camera_controller.start_encoder(encoder_id=encoder_capture_loop_id)
+        #     time.sleep(60)
+        #     camera_controller.stop_encoder(encoder_id=encoder_capture_loop_id)
+        #     time.sleep(30)
     finally:
         if server is not None:
             server.stop()
