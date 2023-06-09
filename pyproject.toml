@@ -56,10 +56,13 @@ apscheduler = ">=3.10.1"
 cuwb_stream = "cuwb_stream.tools.__main__:main"
 
 [[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
+[[tool.poetry.source]]
 name = "piwheels"
 url = "https://www.piwheels.org/simple"
-default = false
-secondary = true
+priority = "supplemental"
 
 [build-system]
 requires = ["poetry-core"]
