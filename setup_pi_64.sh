@@ -23,11 +23,6 @@ echo "Install Docker"
 
 curl -sSL https://get.docker.com/ | sudo sh
 
-#sudo usermod -aG docker $USER && \
-#mkdir -p /home/"$USER"/.docker && \
-#sudo chown "$USER":"$USER" /home/"$USER"/.docker -R && \
-#sudo chmod g+rwx "$HOME/.docker" -R
-
 echo "Install Containerd"
 
 sudo rm /etc/containerd/config.toml
