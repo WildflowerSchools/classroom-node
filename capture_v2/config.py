@@ -28,7 +28,7 @@ class Settings(BaseSettings):
 
     CLASSROOM_ENVIRONMENT_ID: str = None
     CLASSROOM_START_TIME: str = None
-    CLASSROOM_STOP_TIME: str = None
+    CLASSROOM_END_TIME: str = None
 
     HONEYCOMB_URI: str = "https://honeycomb.api.wildflower-tech.org/graphql"
     HONEYCOMB_DOMAIN: str = "wildflowerschools.auth0.com"

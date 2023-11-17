@@ -30,12 +30,12 @@ class Scheduler:
     def __init__(self,
                  environment_id: str,
                  default_classroom_start_time_in_hours_and_minutes: str = None,
-                 default_classroom_stop_time_in_hours_and_minutes: str = None):
+                 default_classroom_end_time_in_hours_and_minutes: str = None):
         self.honeycomb_client = HoneycombCachingClient()
         self.environment_id = environment_id
 
         self.default_classroom_start_time_in_hours_and_minutes = "07:30" if default_classroom_start_time_in_hours_and_minutes is None else default_classroom_start_time_in_hours_and_minutes
-        self.default_classroom_stop_time_in_hours_and_minutes = "17:30" if default_classroom_stop_time_in_hours_and_minutes is None else default_classroom_stop_time_in_hours_and_minutes
+        self.default_classroom_end_time_in_hours_and_minutes = "17:30" if default_classroom_end_time_in_hours_and_minutes is None else default_classroom_end_time_in_hours_and_minutes
 
         self.coordinating_scheduler = BlockingScheduler()
         self.coordinating_scheduler.add_job(
@@ -186,7 +186,7 @@ class Scheduler:
         )
         environment_end_datetime = datetime.combine(
             date=tz_aware_datetime.date(),
-            time=datetime.strptime(self.default_classroom_stop_time_in_hours_and_minutes, "%H:%M").time(),
+            time=datetime.strptime(self.default_classroom_end_time_in_hours_and_minutes, "%H:%M").time(),
             tzinfo=tz,
         )
 

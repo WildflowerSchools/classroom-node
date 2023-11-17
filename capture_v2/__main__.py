@@ -85,7 +85,7 @@ def main():
         capture_scheduler = Scheduler(
             environment_id=settings.CLASSROOM_ENVIRONMENT_ID,
             default_classroom_start_time_in_hours_and_minutes=settings.CLASSROOM_START_TIME,
-            default_classroom_stop_time_in_hours_and_minutes=settings.CLASSROOM_STOP_TIME,
+            default_classroom_end_time_in_hours_and_minutes=settings.CLASSROOM_END_TIME,
         )
         capture_scheduler.add_class_hours_tasks(
             name="capture",

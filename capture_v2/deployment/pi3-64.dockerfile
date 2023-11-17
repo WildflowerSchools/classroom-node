@@ -9,7 +9,8 @@ RUN apt update -y && \
     autoconf \
     libtool \
     libffi-dev \
-    wget && \
+    wget \
+    gcc && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /tmp
@@ -39,13 +40,17 @@ RUN adduser --disabled-password --gecos '' docker && usermod -a -G tty,video doc
 RUN apt update -y && \
     apt remove python3-numpy -y && \
     apt install --no-install-recommends -y \
+    build-essential \
     libcamera-dev \
     python3 \
     python3-picamera2 \
     v4l-utils \
     ffmpeg \
     avahi-daemon \
-    libnss-mdns && \
+    libnss-mdns \
+    gcc \
+    linux-headers \
+    linux-libc-dev && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=build-stage /usr/local/bin/mp4fpsmod /usr/local/bin/wheel /usr/local/bin/pip /usr/local/bin/poetry /usr/local/bin/yq /usr/local/bin/
