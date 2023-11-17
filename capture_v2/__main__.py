@@ -1,5 +1,4 @@
 import sys
-import time
 
 from picamera2.encoders import MJPEGEncoder
 from picamera2.outputs import FileOutput
@@ -83,7 +82,11 @@ def main():
         # Scheduler is responsible for starting/stopping the CameraOutputSegmenter encoder which
         # converts camera output -> video files.
         # It uses the classroom environment ID to fetch a classroms start/stop time
-        capture_scheduler = Scheduler(environment_id=settings.CLASSROOM_ENVIRONMENT_ID)
+        capture_scheduler = Scheduler(
+            environment_id=settings.CLASSROOM_ENVIRONMENT_ID,
+            default_classroom_start_time_in_hours_and_minutes=settings.CLASSROOM_START_TIME,
+            default_classroom_stop_time_in_hours_and_minutes=settings.CLASSROOM_STOP_TIME,
+        )
         capture_scheduler.add_class_hours_tasks(
             name="capture",
             during_class_hours_callback=camera_controller.start_encoder,
